@@ -39,3 +39,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# supabase cli cache
+supabase/.temp/
+
+# claude code
+.claude/
+
+# windows artifact
+nul
