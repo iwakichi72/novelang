@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/auth-provider";
 import { createClient } from "@/lib/supabase/client";
 
@@ -33,20 +32,25 @@ export default function DictionaryPopup({
   const [aiError, setAiError] = useState(false);
 
   useEffect(() => {
-    supabase
-      .from("word_entries")
-      .select("id, meaning_ja, pos, pronunciation")
-      .eq("word", word)
-      .single()
-      .then(({ data }) => {
-        if (data) {
-          const d = data as { id: string; meaning_ja: string; pos: string; pronunciation: string | null };
-          setWordId(d.id);
-          setEntry({ meaning_ja: d.meaning_ja, pos: d.pos, pronunciation: d.pronunciation });
+    fetch("/api/dictionary/lookup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ word, sentenceText }),
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.entry) {
+          setWordId(data.entry.id);
+          setEntry({
+            meaning_ja: data.entry.meaning_ja,
+            pos: data.entry.pos,
+            pronunciation: data.entry.pronunciation,
+          });
         }
         setLoading(false);
-      });
-  }, [word]);
+      })
+      .catch(() => setLoading(false));
+  }, [word, sentenceText]);
 
   const handleAiLookup = async () => {
     setAiLoading(true);
