@@ -25,7 +25,15 @@ export default async function HomePage() {
               英語小説を、あなたのペースで
             </p>
           </div>
-          <UserMenu />
+          <div className="flex items-center gap-3">
+            <Link
+              href="/vocab"
+              className="text-sm text-gray-500 hover:text-gray-700"
+            >
+              単語帳
+            </Link>
+            <UserMenu />
+          </div>
         </div>
       </header>
 

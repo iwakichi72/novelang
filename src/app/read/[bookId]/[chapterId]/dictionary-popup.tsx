@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/components/auth-provider";
+import { createClient } from "@/lib/supabase/client";
 
 export default function DictionaryPopup({
   word,
@@ -14,7 +16,10 @@ export default function DictionaryPopup({
   sentenceText: string;
   onClose: () => void;
 }) {
+  const { user } = useAuth();
+  const authSupabase = createClient();
   const [saved, setSaved] = useState(false);
+  const [wordId, setWordId] = useState<string | null>(null);
   const [entry, setEntry] = useState<{
     meaning_ja: string;
     pos: string;
@@ -30,11 +35,15 @@ export default function DictionaryPopup({
   useEffect(() => {
     supabase
       .from("word_entries")
-      .select("meaning_ja, pos, pronunciation")
+      .select("id, meaning_ja, pos, pronunciation")
       .eq("word", word)
       .single()
       .then(({ data }) => {
-        setEntry(data);
+        if (data) {
+          const d = data as { id: string; meaning_ja: string; pos: string; pronunciation: string | null };
+          setWordId(d.id);
+          setEntry({ meaning_ja: d.meaning_ja, pos: d.pos, pronunciation: d.pronunciation });
+        }
         setLoading(false);
       });
   }, [word]);
@@ -125,8 +134,16 @@ export default function DictionaryPopup({
             </button>
           )}
           <button
-            onClick={() => setSaved(true)}
-            disabled={saved}
+            onClick={async () => {
+              if (!user || !wordId) return;
+              const { error } = await authSupabase.from("vocab_items").insert({
+                user_id: user.id,
+                word_id: wordId,
+                sentence_id: sentenceId,
+              } as never);
+              if (!error) setSaved(true);
+            }}
+            disabled={saved || !user || !wordId}
             className={`flex-1 py-2 text-sm rounded-lg transition-colors ${
               saved
                 ? "bg-green-100 text-green-700"
