@@ -75,7 +75,7 @@ export default function DictionaryPopup({
     <>
       <div className="fixed inset-0 z-30" onClick={onClose} />
 
-      <div className="fixed bottom-24 left-4 right-4 z-40 max-w-md mx-auto bg-white rounded-2xl shadow-xl border border-gray-200 p-4 max-h-[60vh] overflow-y-auto">
+      <div className="fixed left-4 right-4 z-40 max-w-md mx-auto bg-white rounded-2xl shadow-xl border border-gray-200 p-4 max-h-[60vh] overflow-y-auto" style={{ bottom: "calc(6rem + env(safe-area-inset-bottom, 0px))" }}>
         <div className="flex justify-between items-start mb-2">
           <div>
             <h3 className="text-lg font-bold">{word}</h3>

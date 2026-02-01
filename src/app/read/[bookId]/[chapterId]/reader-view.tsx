@@ -164,7 +164,7 @@ export default function ReaderView({
     <div className="min-h-screen bg-white">
       {/* ヘッダー */}
       {showHeader && (
-        <header className="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur border-b border-gray-200 px-4 py-3 z-20">
+        <header className="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur border-b border-gray-200 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] z-20">
           <div className="max-w-2xl mx-auto flex items-center justify-between">
             <Link
               href={`/library/${book.id}`}
@@ -253,7 +253,7 @@ export default function ReaderView({
       )}
 
       {/* フッター: プログレス + 英語量スライダー */}
-      <footer className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur border-t border-gray-200 px-4 py-3 z-20">
+      <footer className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur border-t border-gray-200 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] z-20">
         <div className="max-w-2xl mx-auto">
           {/* プログレスバー */}
           <div className="flex items-center gap-2 mb-2">
