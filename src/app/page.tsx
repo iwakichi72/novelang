@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MOCK_BOOKS } from "@/lib/mock-data";
+import { getBooks } from "@/lib/supabase";
 
 const CEFR_COLORS: Record<string, string> = {
   A1: "bg-green-100 text-green-800",
@@ -10,8 +10,8 @@ const CEFR_COLORS: Record<string, string> = {
   C2: "bg-purple-200 text-purple-900",
 };
 
-export default function HomePage() {
-  const books = MOCK_BOOKS;
+export default async function HomePage() {
+  const books = await getBooks();
 
   return (
     <div className="min-h-screen bg-gray-50">

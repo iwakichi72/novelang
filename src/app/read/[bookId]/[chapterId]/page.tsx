@@ -1,4 +1,4 @@
-import { MOCK_BOOKS, MOCK_CHAPTERS, MOCK_SENTENCES } from "@/lib/mock-data";
+import { getBook, getChapter, getSentences } from "@/lib/supabase";
 import ReaderView from "./reader-view";
 
 export default async function ReadPage({
@@ -7,11 +7,9 @@ export default async function ReadPage({
   params: Promise<{ bookId: string; chapterId: string }>;
 }) {
   const { bookId, chapterId } = await params;
-  const book = MOCK_BOOKS.find((b) => b.id === bookId);
-  const chapter = MOCK_CHAPTERS.find((c) => c.id === chapterId);
-  const sentences = MOCK_SENTENCES.filter((s) => s.chapter_id === chapterId).sort(
-    (a, b) => a.position - b.position
-  );
+  const book = await getBook(bookId);
+  const chapter = await getChapter(chapterId);
+  const sentences = chapter ? await getSentences(chapterId) : [];
 
   if (!book || !chapter) {
     return (

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MOCK_BOOKS, MOCK_CHAPTERS } from "@/lib/mock-data";
+import { getBook, getChapters } from "@/lib/supabase";
 
 const CEFR_COLORS: Record<string, string> = {
   A1: "bg-green-100 text-green-800",
@@ -16,8 +16,8 @@ export default async function BookDetailPage({
   params: Promise<{ bookId: string }>;
 }) {
   const { bookId } = await params;
-  const book = MOCK_BOOKS.find((b) => b.id === bookId);
-  const chapters = MOCK_CHAPTERS.filter((c) => c.book_id === bookId);
+  const book = await getBook(bookId);
+  const chapters = book ? await getChapters(bookId) : [];
 
   if (!book) {
     return (
@@ -39,7 +39,6 @@ export default async function BookDetailPage({
       </header>
 
       <main className="max-w-2xl mx-auto px-4 py-6">
-        {/* 作品情報 */}
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <div className="flex items-start gap-2 mb-2">
             <h2 className="text-xl font-bold">{book.title_en}</h2>
@@ -63,17 +62,15 @@ export default async function BookDetailPage({
           </div>
         </div>
 
-        {/* 読み始めるボタン */}
         <div className="mt-6">
           <Link
-            href={`/read/${bookId}/${chapters[0]?.id ?? "ch-1-1"}`}
+            href={`/read/${bookId}/${chapters[0]?.id ?? ""}`}
             className="block w-full bg-blue-600 text-white text-center py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors"
           >
             読み始める
           </Link>
         </div>
 
-        {/* 章一覧 */}
         {chapters.length > 0 && (
           <div className="mt-6">
             <h3 className="text-base font-semibold mb-3">章一覧</h3>
