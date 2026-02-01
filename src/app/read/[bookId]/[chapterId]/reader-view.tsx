@@ -148,10 +148,10 @@ export default function ReaderView({
               <span
                 key={sentence.id}
                 onClick={() => handleSentenceTap(sentence.id)}
-                className={`inline cursor-pointer transition-colors duration-150 rounded px-0.5 ${
+                className={`inline cursor-pointer transition-colors duration-150 rounded px-0.5 py-0.5 text-gray-900 border-b border-transparent hover:border-gray-200 ${
                   isJapanese
-                    ? "bg-blue-50 text-gray-700"
-                    : "hover:bg-gray-50"
+                    ? "bg-blue-50"
+                    : "bg-gray-50/50 hover:bg-gray-100/50"
                 }`}
               >
                 {lang === "en"
