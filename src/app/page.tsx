@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getBooks } from "@/lib/supabase";
 import UserMenu from "@/components/user-menu";
+import ContinueReading from "@/components/continue-reading";
 
 const CEFR_COLORS: Record<string, string> = {
   A1: "bg-green-100 text-green-800",
@@ -29,6 +30,7 @@ export default async function HomePage() {
       </header>
 
       <main className="max-w-2xl mx-auto px-4 py-6">
+        <ContinueReading />
         <h2 className="text-lg font-semibold mb-4">作品を選ぶ</h2>
         <div className="space-y-4">
           {books.map((book) => (

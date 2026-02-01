@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
 import type { Book, Chapter, Sentence } from "@/types/database";
 import DictionaryPopup from "./dictionary-popup";
+import { useReadingProgress } from "@/hooks/use-reading-progress";
 
 type EnglishRatio = 25 | 50 | 75 | 100;
 
@@ -33,6 +34,48 @@ export default function ReaderView({
     sentenceId: string;
     rect: { x: number; y: number };
   } | null>(null);
+
+  // 読書進捗フック
+  const { savedPosition, saveProgress } = useReadingProgress(book.id, chapter.id);
+  const sentenceRefs = useRef<Map<string, HTMLElement>>(new Map());
+  const hasRestoredPosition = useRef(false);
+
+  // 保存済み位置にスクロール復元
+  useEffect(() => {
+    if (hasRestoredPosition.current || savedPosition === 0) return;
+    const targetSentence = sentences.find((s) => s.position === savedPosition);
+    if (targetSentence) {
+      const el = sentenceRefs.current.get(targetSentence.id);
+      if (el) {
+        el.scrollIntoView({ block: "center" });
+        hasRestoredPosition.current = true;
+      }
+    }
+  }, [savedPosition, sentences]);
+
+  // スクロールで読んだ位置を追跡・保存
+  useEffect(() => {
+    const handleScroll = () => {
+      const viewportMiddle = window.innerHeight / 2;
+      let lastVisiblePosition = 0;
+
+      for (const sentence of sentences) {
+        const el = sentenceRefs.current.get(sentence.id);
+        if (!el) continue;
+        const rect = el.getBoundingClientRect();
+        if (rect.top < viewportMiddle) {
+          lastVisiblePosition = sentence.position;
+        }
+      }
+
+      if (lastVisiblePosition > 0) {
+        saveProgress(lastVisiblePosition, lastVisiblePosition);
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [sentences, saveProgress]);
 
   // 英語量に基づいて、各文のデフォルト表示言語を決定
   const getDefaultLang = useCallback(
@@ -94,8 +137,25 @@ export default function ReaderView({
     });
   };
 
-  // 進捗計算
-  const progress = Math.round((sentences.length / (chapter.sentence_count || sentences.length)) * 100);
+  // 進捗計算（現在のスクロール位置ベース）
+  const [currentPosition, setCurrentPosition] = useState(0);
+  useEffect(() => {
+    const handleProgress = () => {
+      const viewportMiddle = window.innerHeight / 2;
+      let pos = 0;
+      for (const sentence of sentences) {
+        const el = sentenceRefs.current.get(sentence.id);
+        if (!el) continue;
+        if (el.getBoundingClientRect().top < viewportMiddle) pos = sentence.position;
+      }
+      setCurrentPosition(pos);
+    };
+    window.addEventListener("scroll", handleProgress, { passive: true });
+    return () => window.removeEventListener("scroll", handleProgress);
+  }, [sentences]);
+  const progress = sentences.length > 0
+    ? Math.round((currentPosition / sentences.length) * 100)
+    : 0;
 
   return (
     <div className="min-h-screen bg-white">
@@ -147,6 +207,9 @@ export default function ReaderView({
             return (
               <span
                 key={sentence.id}
+                ref={(el) => {
+                  if (el) sentenceRefs.current.set(sentence.id, el);
+                }}
                 onClick={() => handleSentenceTap(sentence.id)}
                 className={`inline cursor-pointer transition-colors duration-150 rounded px-0.5 py-0.5 text-gray-900 border-b border-transparent hover:border-gray-200 ${
                   isJapanese
