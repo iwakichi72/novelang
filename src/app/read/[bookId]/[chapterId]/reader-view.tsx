@@ -32,6 +32,7 @@ export default function ReaderView({
   const [selectedWord, setSelectedWord] = useState<{
     word: string;
     sentenceId: string;
+    sentenceText: string;
     rect: { x: number; y: number };
   } | null>(null);
 
@@ -125,7 +126,8 @@ export default function ReaderView({
   const handleWordClick = (
     e: React.MouseEvent,
     word: string,
-    sentenceId: string
+    sentenceId: string,
+    sentenceText: string
   ) => {
     e.stopPropagation();
     const cleaned = word.replace(/[^a-zA-Z'-]/g, "").toLowerCase();
@@ -133,6 +135,7 @@ export default function ReaderView({
     setSelectedWord({
       word: cleaned,
       sentenceId,
+      sentenceText,
       rect: { x: e.clientX, y: e.clientY },
     });
   };
@@ -224,7 +227,7 @@ export default function ReaderView({
                         <span
                           key={i}
                           onClick={(e) =>
-                            handleWordClick(e, part, sentence.id)
+                            handleWordClick(e, part, sentence.id, sentence.text_en)
                           }
                           className="hover:bg-yellow-100 rounded cursor-pointer"
                         >
@@ -244,6 +247,7 @@ export default function ReaderView({
         <DictionaryPopup
           word={selectedWord.word}
           sentenceId={selectedWord.sentenceId}
+          sentenceText={selectedWord.sentenceText}
           onClose={() => setSelectedWord(null)}
         />
       )}

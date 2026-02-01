@@ -27,8 +27,8 @@
 
 ## β バックログ
 
-- [ ] #18 AI辞書API（Bedrock Claude Haiku連携）
-- [ ] #19 AI辞書キャッシュ（Supabase）
+- [x] #18 AI辞書API（Bedrock Claude Haiku連携）— /api/dictionary/ai、文脈付き解説
+- [x] #19 AI辞書キャッシュ（Supabase）— ai_dictionary_cacheテーブル活用、word+sentence_idで重複排除
 - [ ] #20 単語帳CRUD API＋画面
 - [ ] #21 TTS（Web Speech API連携）
 - [ ] #22 連続日数（ストリーク）計算＋表示
