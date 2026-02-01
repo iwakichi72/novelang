@@ -7,6 +7,7 @@
 ### 完了済み
 - [x] #1 プロジェクトセットアップ（Next.js + TypeScript + Tailwind）
 - [x] #2 Supabaseテーブル設計＋作成（10テーブル、マイグレーション済み）
+- [x] #3 Supabase Auth設定＋Google Sign-In実装（AuthProvider, UserMenu, RLS, コールバック）
 - [x] #6 作品一覧画面（Supabaseクエリ対応済み）
 - [x] #7 作品詳細画面（Supabaseクエリ対応済み）
 - [x] #8 章の文取得API（Supabaseヘルパー関数）
@@ -17,7 +18,6 @@
 - [x] #13 単語タップ→辞書ポップアップ（Supabase対応済み）
 
 ### 未着手
-- [ ] #3 Supabase Auth設定＋Google Sign-In実装（**後回し**）
 - [ ] #4 作品データ投入パイプライン（Gutenberg→文分割→翻訳→DB格納）
 - [ ] #5 文の難易度スコア計算バッチ
 - [ ] #14 読書進捗API（保存/取得）
@@ -42,6 +42,6 @@
 
 - **DB**: Supabase PostgreSQL（プロジェクトID: oqckkhxnxebhiukmvtrz）
 - **ホスティング**: Vercel（未デプロイ）
-- **認証**: Supabase Auth（未実装、後回し）
+- **認証**: Supabase Auth + Google Sign-In（@supabase/ssr使用、RLS設定済み）
 - **UUID生成**: `gen_random_uuid()`（Supabase標準）
 - **シードデータ**: 3冊・2章・10文・20語投入済み

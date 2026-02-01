@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getBooks } from "@/lib/supabase";
+import UserMenu from "@/components/user-menu";
 
 const CEFR_COLORS: Record<string, string> = {
   A1: "bg-green-100 text-green-800",
@@ -16,11 +17,14 @@ export default async function HomePage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-200 px-4 py-4">
-        <div className="max-w-2xl mx-auto">
-          <h1 className="text-xl font-bold">Novelang</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            英語小説を、あなたのペースで
-          </p>
+        <div className="max-w-2xl mx-auto flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold">Novelang</h1>
+            <p className="text-sm text-gray-500 mt-1">
+              英語小説を、あなたのペースで
+            </p>
+          </div>
+          <UserMenu />
         </div>
       </header>
 
