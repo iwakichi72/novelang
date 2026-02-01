@@ -1,20 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import {
-  BedrockRuntimeClient,
-  InvokeModelCommand,
-} from "@aws-sdk/client-bedrock-runtime";
 
-const BEDROCK_MODEL_ID = "us.anthropic.claude-haiku-4-5-20251001-v1:0";
-const BEDROCK_REGION = "us-east-1";
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY!;
+const GEMINI_MODEL = "gemini-2.0-flash";
 
 // service_roleでキャッシュ読み書き（RLSバイパス）
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
-
-const bedrock = new BedrockRuntimeClient({ region: BEDROCK_REGION });
 
 export async function POST(request: NextRequest) {
   try {
@@ -42,7 +36,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 2. Bedrock Claude Haiku に問い合わせ
+    // 2. Gemini API に問い合わせ
     const prompt = `あなたは英語学習者向けの辞書アシスタントです。
 
 以下の英文中の単語「${word}」について、この文脈に合った説明を日本語で簡潔に提供してください。
@@ -55,22 +49,25 @@ export async function POST(request: NextRequest) {
 ■ ニュアンス:
 ■ 例文: （別の使用例を1つ）`;
 
-    const body = JSON.stringify({
-      anthropic_version: "bedrock-2023-05-31",
-      max_tokens: 500,
-      messages: [{ role: "user", content: prompt }],
-    });
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { maxOutputTokens: 500 },
+        }),
+      }
+    );
 
-    const command = new InvokeModelCommand({
-      modelId: BEDROCK_MODEL_ID,
-      contentType: "application/json",
-      accept: "application/json",
-      body,
-    });
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Gemini API error ${res.status}: ${errText}`);
+    }
 
-    const response = await bedrock.send(command);
-    const result = JSON.parse(new TextDecoder().decode(response.body));
-    const responseJa: string = result.content[0].text;
+    const data = await res.json();
+    const responseJa: string = data.candidates[0].content.parts[0].text;
 
     // 3. キャッシュに保存
     await supabase.from("ai_dictionary_cache").insert({

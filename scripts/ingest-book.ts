@@ -36,9 +36,8 @@ const GUTENBERG_BOOKS = [
   },
 ];
 
-const BEDROCK_MODEL_ID = "us.anthropic.claude-haiku-4-5-20251001-v1:0";
-const BEDROCK_REGION = "us-east-1";
-const BATCH_SIZE = 10;
+const DEEPL_API_KEY = process.env.DEEPL_API_KEY;
+const BATCH_SIZE = 50; // DeepLは一括送信可能なのでバッチサイズを大きく
 
 // ---------- Supabase ----------
 
@@ -128,53 +127,40 @@ function stubTranslate(sentences: string[]): string[] {
 }
 
 /**
- * Bedrock Claude Haiku で翻訳（--translate フラグ時のみ使用）
- * 使用前に `aws login` でAWS認証が必要。
+ * DeepL API で翻訳（--translate フラグ時のみ使用）
+ * DEEPL_API_KEY が .env.local に必要。
  */
-async function translateBatchWithLLM(sentences: string[]): Promise<string[]> {
-  // 動的インポート（--translate 時のみ AWS SDK をロード）
-  const { BedrockRuntimeClient, InvokeModelCommand } = await import(
-    "@aws-sdk/client-bedrock-runtime"
-  );
-  const bedrock = new BedrockRuntimeClient({ region: BEDROCK_REGION });
-
-  const numberedText = sentences.map((s, i) => `[${i + 1}] ${s}`).join("\n");
-
-  const prompt = `以下の英文を、番号付きで日本語に翻訳してください。小説の一部なので、自然な日本語で文芸的に訳してください。
-
-各文を [番号] 訳文 の形式で出力してください。番号以外の説明は不要です。
-
-${numberedText}`;
-
-  const body = JSON.stringify({
-    anthropic_version: "bedrock-2023-05-31",
-    max_tokens: 4096,
-    messages: [{ role: "user", content: prompt }],
-  });
-
-  const command = new InvokeModelCommand({
-    modelId: BEDROCK_MODEL_ID,
-    contentType: "application/json",
-    accept: "application/json",
-    body,
-  });
-
-  const response = await bedrock.send(command);
-  const result = JSON.parse(new TextDecoder().decode(response.body));
-  const responseText: string = result.content[0].text;
-
-  const translations: string[] = [];
-  for (let i = 0; i < sentences.length; i++) {
-    const regex = new RegExp(
-      `\\[${i + 1}\\]\\s*(.+?)(?=\\[${i + 2}\\]|$)`,
-      "s"
-    );
-    const match = responseText.match(regex);
-    translations.push(
-      match ? match[1].trim() : `（翻訳エラー: ${sentences[i].slice(0, 30)}...）`
-    );
+async function translateBatchWithDeepL(sentences: string[]): Promise<string[]> {
+  if (!DEEPL_API_KEY) {
+    throw new Error("DEEPL_API_KEY が .env.local に設定されていません");
   }
-  return translations;
+
+  // DeepL Free API: https://api-free.deepl.com
+  // DeepL Pro API: https://api.deepl.com
+  const baseUrl = DEEPL_API_KEY.endsWith(":fx")
+    ? "https://api-free.deepl.com"
+    : "https://api.deepl.com";
+
+  const res = await fetch(`${baseUrl}/v2/translate`, {
+    method: "POST",
+    headers: {
+      Authorization: `DeepL-Auth-Key ${DEEPL_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      text: sentences,
+      source_lang: "EN",
+      target_lang: "JA",
+    }),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`DeepL API error ${res.status}: ${errText}`);
+  }
+
+  const data = await res.json();
+  return (data.translations as { text: string }[]).map((t) => t.text);
 }
 
 // ---------- DB格納 ----------
@@ -288,8 +274,33 @@ async function main() {
   const bookConfig = GUTENBERG_BOOKS[0];
   console.log(`\n📚 パイプライン開始: ${bookConfig.title_en}`);
   console.log(
-    `   翻訳モード: ${USE_LLM_TRANSLATION ? "🤖 Bedrock Haiku" : "📝 スタブ（【未翻訳】プレフィックス付き）"}\n`
+    `   翻訳モード: ${USE_LLM_TRANSLATION ? "🌐 DeepL API" : "📝 スタブ（【未翻訳】プレフィックス付き）"}\n`
   );
+
+  // 0. 既存データ削除（同じタイトルの作品があれば削除）
+  const { data: existingBooks } = await supabase
+    .from("books")
+    .select("id")
+    .eq("title_en", bookConfig.title_en);
+
+  if (existingBooks && existingBooks.length > 0) {
+    for (const eb of existingBooks) {
+      const bookId = (eb as { id: string }).id;
+      // sentences → chapters → reading_progress → book の順で削除
+      const { data: chapters } = await supabase
+        .from("chapters")
+        .select("id")
+        .eq("book_id", bookId);
+      if (chapters) {
+        const chapterIds = chapters.map((c) => (c as { id: string }).id);
+        await supabase.from("sentences").delete().in("chapter_id", chapterIds);
+      }
+      await supabase.from("chapters").delete().eq("book_id", bookId);
+      await supabase.from("reading_progress").delete().eq("book_id", bookId);
+      await supabase.from("books").delete().eq("id", bookId);
+      console.log(`🗑️ 既存データ削除: ${bookId}`);
+    }
+  }
 
   // 1. テキスト取得
   const fullText = await fetchGutenbergText(bookConfig.url);
@@ -312,7 +323,7 @@ async function main() {
 
   if (USE_LLM_TRANSLATION) {
     console.log(
-      `🔄 LLM翻訳開始（${Math.ceil(englishSentences.length / BATCH_SIZE)}バッチ）`
+      `🔄 DeepL翻訳開始（${Math.ceil(englishSentences.length / BATCH_SIZE)}バッチ）`
     );
     for (let i = 0; i < englishSentences.length; i += BATCH_SIZE) {
       const batch = englishSentences.slice(i, i + BATCH_SIZE);
@@ -320,7 +331,7 @@ async function main() {
       const totalBatches = Math.ceil(englishSentences.length / BATCH_SIZE);
       process.stdout.write(`   バッチ ${batchNum}/${totalBatches}...`);
 
-      const translations = await translateBatchWithLLM(batch);
+      const translations = await translateBatchWithDeepL(batch);
       japaneseSentences.push(...translations);
       console.log(` ✅ (${translations.length}文)`);
 
