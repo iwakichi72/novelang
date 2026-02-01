@@ -122,22 +122,56 @@ export default function ReaderView({
     setFlippedSentences(new Set());
   };
 
-  // 単語の長押し（実装はクリックで代用、モバイルでは長押し）
-  const handleWordClick = (
-    e: React.MouseEvent,
+  // 長押し管理用ref
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressTriggered = useRef(false);
+  const pressStartPos = useRef<{ x: number; y: number } | null>(null);
+
+  // 単語タップ → 辞書ポップアップ
+  const handleWordTap = (
     word: string,
     sentenceId: string,
     sentenceText: string
   ) => {
-    e.stopPropagation();
+    if (longPressTriggered.current) return;
     const cleaned = word.replace(/[^a-zA-Z'-]/g, "").toLowerCase();
     if (cleaned.length < 2) return;
     setSelectedWord({
       word: cleaned,
       sentenceId,
       sentenceText,
-      rect: { x: e.clientX, y: e.clientY },
+      rect: { x: 0, y: 0 },
     });
+  };
+
+  // 長押し開始（2秒で日英切替）
+  const handlePressStart = (sentenceId: string, x: number, y: number) => {
+    longPressTriggered.current = false;
+    pressStartPos.current = { x, y };
+    longPressTimer.current = setTimeout(() => {
+      longPressTriggered.current = true;
+      handleSentenceTap(sentenceId);
+    }, 2000);
+  };
+
+  // スライドで長押しキャンセル（10px以上移動）
+  const handlePressMove = (x: number, y: number) => {
+    if (!pressStartPos.current || !longPressTimer.current) return;
+    const dx = x - pressStartPos.current.x;
+    const dy = y - pressStartPos.current.y;
+    if (dx * dx + dy * dy > 100) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
+
+  // 長押しキャンセル
+  const handlePressEnd = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    pressStartPos.current = null;
   };
 
   // 進捗計算（現在のスクロール位置ベース）
@@ -213,11 +247,10 @@ export default function ReaderView({
                 ref={(el) => {
                   if (el) sentenceRefs.current.set(sentence.id, el);
                 }}
-                onClick={() => handleSentenceTap(sentence.id)}
-                className={`inline cursor-pointer transition-colors duration-150 rounded px-0.5 py-0.5 text-gray-900 border-b border-transparent hover:border-gray-200 ${
+                className={`inline transition-colors duration-150 rounded px-0.5 py-0.5 text-gray-900 border-b border-transparent ${
                   isJapanese
                     ? "bg-blue-50"
-                    : "bg-gray-50/50 hover:bg-gray-100/50"
+                    : "bg-gray-50/50"
                 }`}
               >
                 {lang === "en"
@@ -226,16 +259,38 @@ export default function ReaderView({
                       return (
                         <span
                           key={i}
-                          onClick={(e) =>
-                            handleWordClick(e, part, sentence.id, sentence.text_en)
+                          onClick={() =>
+                            handleWordTap(part, sentence.id, sentence.text_en)
                           }
-                          className="hover:bg-yellow-100 rounded cursor-pointer"
+                          onTouchStart={(e) => handlePressStart(sentence.id, e.touches[0].clientX, e.touches[0].clientY)}
+                          onTouchMove={(e) => handlePressMove(e.touches[0].clientX, e.touches[0].clientY)}
+                          onTouchEnd={handlePressEnd}
+                          onTouchCancel={handlePressEnd}
+                          onMouseDown={(e) => handlePressStart(sentence.id, e.clientX, e.clientY)}
+                          onMouseMove={(e) => handlePressMove(e.clientX, e.clientY)}
+                          onMouseUp={handlePressEnd}
+                          onMouseLeave={handlePressEnd}
+                          className="hover:bg-yellow-100 rounded cursor-pointer select-none"
                         >
                           {part}
                         </span>
                       );
                     })
-                  : text}{" "}
+                  : (
+                    <span
+                      onTouchStart={(e) => handlePressStart(sentence.id, e.touches[0].clientX, e.touches[0].clientY)}
+                      onTouchMove={(e) => handlePressMove(e.touches[0].clientX, e.touches[0].clientY)}
+                      onTouchEnd={handlePressEnd}
+                      onTouchCancel={handlePressEnd}
+                      onMouseDown={(e) => handlePressStart(sentence.id, e.clientX, e.clientY)}
+                      onMouseMove={(e) => handlePressMove(e.clientX, e.clientY)}
+                      onMouseUp={handlePressEnd}
+                      onMouseLeave={handlePressEnd}
+                      className="cursor-pointer select-none"
+                    >
+                      {text}
+                    </span>
+                  )}{" "}
               </span>
             );
           })}
