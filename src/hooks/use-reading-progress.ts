@@ -12,6 +12,8 @@ export function useReadingProgress(bookId: string, chapterId: string) {
   const [loading, setLoading] = useState(true);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestPositionRef = useRef<number>(0);
+  const sessionSentencesRef = useRef<number>(0); // このセッションで読んだ文数
+  const dailyStatsUpdatedRef = useRef<boolean>(false); // daily_stats更新済みフラグ
 
   // 進捗を取得
   useEffect(() => {
@@ -42,6 +44,12 @@ export function useReadingProgress(bookId: string, chapterId: string) {
   const saveProgress = useCallback(
     (sentencePosition: number, sentencesRead: number) => {
       if (!user) return;
+
+      // セッション内の読了文数を追跡
+      const prevPosition = latestPositionRef.current;
+      if (sentencePosition > prevPosition) {
+        sessionSentencesRef.current += sentencePosition - prevPosition;
+      }
       latestPositionRef.current = sentencePosition;
 
       if (saveTimerRef.current) {
@@ -82,14 +90,53 @@ export function useReadingProgress(bookId: string, chapterId: string) {
     [user, bookId, chapterId, supabase]
   );
 
-  // コンポーネントアンマウント時に未保存の進捗を即座に保存
+  // daily_statsを更新
+  const updateDailyStats = useCallback(async () => {
+    if (!user || dailyStatsUpdatedRef.current || sessionSentencesRef.current === 0) return;
+
+    dailyStatsUpdatedRef.current = true;
+
+    try {
+      await fetch("/api/stats/daily", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": user.id,
+        },
+        body: JSON.stringify({
+          sentences_read: sessionSentencesRef.current,
+          minutes_read: 0, // 簡易版: 時間は追跡しない
+        }),
+      });
+    } catch {
+      // エラーは無視
+    }
+  }, [user]);
+
+  // コンポーネントアンマウント時・ページ離脱時に統計を更新
   useEffect(() => {
+    const handleBeforeUnload = () => {
+      updateDailyStats();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        updateDailyStats();
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     return () => {
       if (saveTimerRef.current) {
         clearTimeout(saveTimerRef.current);
       }
+      updateDailyStats();
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, []);
+  }, [updateDailyStats]);
 
   return {
     progress,
