@@ -91,29 +91,29 @@ export default function ContinueReading() {
 
   return (
     <div className="mb-6">
-      <h2 className="text-lg font-semibold mb-3">続きから読む</h2>
+      <h2 className="text-lg font-semibold mb-3 text-foreground">続きから読む</h2>
       <Link
         href={`/read/${progress.book_id}/${progress.current_chapter_id}`}
-        className="block bg-blue-50 border border-blue-200 rounded-xl p-4 hover:bg-blue-100 transition-colors"
+        className="block bg-accent/10 border border-accent/30 rounded-xl p-4 hover:bg-accent/20 transition-colors"
       >
         <div className="flex items-center gap-3">
-          <div className="w-12 h-16 bg-blue-200 rounded-lg flex-shrink-0 flex items-center justify-center text-xl">
+          <div className="w-12 h-16 bg-accent/20 rounded-lg flex-shrink-0 flex items-center justify-center text-xl">
             📖
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-sm">{progress.book_title_en}</h3>
-            <p className="text-xs text-gray-500">{progress.book_title_ja}</p>
-            <p className="text-xs text-gray-400 mt-1">
+            <h3 className="font-semibold text-sm text-foreground">{progress.book_title_en}</h3>
+            <p className="text-xs text-muted-foreground">{progress.book_title_ja}</p>
+            <p className="text-xs text-muted-foreground mt-1">
               第{progress.chapter_number}章 · {chapterProgress}%
             </p>
-            <div className="mt-2 h-1.5 bg-blue-200 rounded-full overflow-hidden">
+            <div className="mt-2 h-1.5 bg-accent/30 rounded-full overflow-hidden">
               <div
-                className="h-full bg-blue-500 rounded-full"
+                className="h-full bg-accent rounded-full"
                 style={{ width: `${chapterProgress}%` }}
               />
             </div>
           </div>
-          <span className="text-blue-600 text-sm font-medium">読む →</span>
+          <span className="text-accent text-sm font-medium">読む →</span>
         </div>
       </Link>
     </div>

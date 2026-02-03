@@ -1,22 +1,80 @@
 @import "tailwindcss";
 
+/* ダークモード: セレクターベース（手動切替対応） */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
+  /* 基本色（ライトモード） */
   --background: #ffffff;
   --foreground: #171717;
+  --card-bg: #ffffff;
+  --card-border: #e5e7eb;
+  --muted: #f9fafb;
+  --muted-foreground: #6b7280;
+  --accent: #3b82f6;
+  --accent-hover: #2563eb;
+  --accent-foreground: #ffffff;
+
+  /* 読書画面専用（目に優しいセピア調） */
+  --reader-bg: #fdfcf9;
+  --reader-text: #1f2937;
+  --sentence-en-bg: rgba(249,250,251,0.5);
+  --sentence-ja-bg: #eff6ff;
+  --word-hover: #fef9c3;
+
+  /* プログレス・ボタン */
+  --progress-bg: #e5e7eb;
+  --progress-fill: #3b82f6;
+  --button-inactive-bg: #f3f4f6;
+  --button-inactive-text: #4b5563;
+}
+
+.dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --card-bg: #171717;
+  --card-border: #2d2d2d;
+  --muted: #1a1a1a;
+  --muted-foreground: #9ca3af;
+  --accent: #60a5fa;
+  --accent-hover: #3b82f6;
+  --accent-foreground: #ffffff;
+
+  /* 読書画面専用（ダーク - 目に優しい配色） */
+  --reader-bg: #121212;
+  --reader-text: #e5e5e5;
+  --sentence-en-bg: rgba(30,30,30,0.7);
+  --sentence-ja-bg: rgba(30,58,138,0.3);
+  --word-hover: rgba(234,179,8,0.3);
+
+  /* プログレス・ボタン */
+  --progress-bg: #2d2d2d;
+  --progress-fill: #60a5fa;
+  --button-inactive-bg: #2d2d2d;
+  --button-inactive-text: #9ca3af;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-card-bg: var(--card-bg);
+  --color-card-border: var(--card-border);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-reader-bg: var(--reader-bg);
+  --color-reader-text: var(--reader-text);
+  --color-sentence-en-bg: var(--sentence-en-bg);
+  --color-sentence-ja-bg: var(--sentence-ja-bg);
+  --color-word-hover: var(--word-hover);
+  --color-progress-bg: var(--progress-bg);
+  --color-progress-fill: var(--progress-fill);
+  --color-button-inactive-bg: var(--button-inactive-bg);
+  --color-button-inactive-text: var(--button-inactive-text);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {

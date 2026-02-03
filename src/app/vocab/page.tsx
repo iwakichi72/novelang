@@ -103,33 +103,33 @@ export default function VocabPage() {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-400">読み込み中...</p>
+      <div className="min-h-screen bg-muted flex items-center justify-center">
+        <p className="text-muted-foreground">読み込み中...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 px-4 py-4">
+    <div className="min-h-screen bg-muted">
+      <header className="bg-card-bg border-b border-card-border px-4 py-4">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link href="/" className="text-gray-500 hover:text-gray-700 text-sm">
+            <Link href="/" className="text-muted-foreground hover:text-foreground text-sm">
               ← 戻る
             </Link>
-            <h1 className="text-lg font-bold">単語帳</h1>
+            <h1 className="text-lg font-bold text-foreground">単語帳</h1>
           </div>
-          <span className="text-sm text-gray-400">{items.length}語</span>
+          <span className="text-sm text-muted-foreground">{items.length}語</span>
         </div>
       </header>
 
       <main className="max-w-2xl mx-auto px-4 py-6">
         {!user ? (
-          <p className="text-center text-gray-500 py-12">
+          <p className="text-center text-muted-foreground py-12">
             ログインすると単語帳が使えます
           </p>
         ) : items.length === 0 ? (
-          <p className="text-center text-gray-500 py-12">
+          <p className="text-center text-muted-foreground py-12">
             保存した単語はまだありません。<br />
             読書中に単語をタップして「＋ 保存」を押してみましょう。
           </p>
@@ -138,24 +138,24 @@ export default function VocabPage() {
             {items.map((item) => (
               <div
                 key={item.id}
-                className="bg-white rounded-xl border border-gray-200 p-4"
+                className="bg-card-bg rounded-xl border border-card-border p-4"
               >
                 <div className="flex justify-between items-start">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline gap-2">
-                      <h3 className="font-bold text-base">{item.word}</h3>
-                      <span className="text-xs text-gray-400">{item.pos}</span>
+                      <h3 className="font-bold text-base text-foreground">{item.word}</h3>
+                      <span className="text-xs text-muted-foreground">{item.pos}</span>
                     </div>
-                    <p className="text-sm text-gray-700 mt-1">{item.meaning_ja}</p>
+                    <p className="text-sm text-foreground mt-1">{item.meaning_ja}</p>
                     {item.sentence_text_en && (
-                      <p className="text-xs text-gray-400 mt-2 italic line-clamp-2">
+                      <p className="text-xs text-muted-foreground mt-2 italic line-clamp-2">
                         &ldquo;{item.sentence_text_en}&rdquo;
                       </p>
                     )}
                   </div>
                   <button
                     onClick={() => handleDelete(item.id)}
-                    className="text-gray-300 hover:text-red-500 text-sm ml-3 flex-shrink-0"
+                    className="text-muted-foreground hover:text-red-500 dark:hover:text-red-400 text-sm ml-3 flex-shrink-0"
                   >
                     削除
                   </button>

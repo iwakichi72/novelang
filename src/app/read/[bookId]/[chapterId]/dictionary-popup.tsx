@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/components/auth-provider";
 import { createClient } from "@/lib/supabase/client";
+import { useTTS } from "@/hooks/use-tts";
 
 export default function DictionaryPopup({
   word,
@@ -17,6 +18,7 @@ export default function DictionaryPopup({
 }) {
   const { user } = useAuth();
   const authSupabase = createClient();
+  const { speak, speaking, isSupported } = useTTS();
   const [saved, setSaved] = useState(false);
   const [wordId, setWordId] = useState<string | null>(null);
   const [entry, setEntry] = useState<{
@@ -75,53 +77,65 @@ export default function DictionaryPopup({
     <>
       <div className="fixed inset-0 z-30" onClick={onClose} />
 
-      <div className="fixed left-4 right-4 z-40 max-w-md mx-auto bg-white rounded-2xl shadow-xl border border-gray-200 p-4 max-h-[60vh] overflow-y-auto" style={{ bottom: "calc(6rem + env(safe-area-inset-bottom, 0px))" }}>
+      <div className="fixed left-4 right-4 z-40 max-w-md mx-auto bg-card-bg rounded-2xl shadow-xl dark:shadow-2xl dark:shadow-black/50 border border-card-border p-4 max-h-[60vh] overflow-y-auto" style={{ bottom: "calc(6rem + env(safe-area-inset-bottom, 0px))" }}>
         <div className="flex justify-between items-start mb-2">
-          <div>
-            <h3 className="text-lg font-bold">{word}</h3>
-            {entry?.pronunciation && (
-              <p className="text-xs text-gray-400">{entry.pronunciation}</p>
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-bold text-foreground">{word}</h3>
+            {isSupported && (
+              <button
+                onClick={() => speak(word, "en")}
+                disabled={speaking}
+                className="p-1 rounded-full text-muted-foreground hover:text-accent hover:bg-accent/10 transition-colors disabled:opacity-50"
+                aria-label="発音を再生"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                </svg>
+              </button>
             )}
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-lg"
+            className="text-muted-foreground hover:text-foreground text-lg"
           >
             ✕
           </button>
         </div>
+        {entry?.pronunciation && (
+          <p className="text-xs text-muted-foreground -mt-1 mb-2">{entry.pronunciation}</p>
+        )}
 
         {loading ? (
-          <p className="text-sm text-gray-400">読み込み中...</p>
+          <p className="text-sm text-muted-foreground">読み込み中...</p>
         ) : entry ? (
           <div>
-            <p className="text-xs text-gray-400 mb-1">{entry.pos}</p>
-            <p className="text-sm text-gray-800">{entry.meaning_ja}</p>
+            <p className="text-xs text-muted-foreground mb-1">{entry.pos}</p>
+            <p className="text-sm text-foreground">{entry.meaning_ja}</p>
           </div>
         ) : (
-          <p className="text-sm text-gray-500">辞書データがありません</p>
+          <p className="text-sm text-muted-foreground">辞書データがありません</p>
         )}
 
         {/* AI辞書セクション */}
         {aiResponse ? (
-          <div className="mt-3 pt-3 border-t border-gray-100">
-            <p className="text-xs text-blue-600 font-medium mb-1">AI辞書</p>
-            <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+          <div className="mt-3 pt-3 border-t border-card-border">
+            <p className="text-xs text-accent font-medium mb-1">AI辞書</p>
+            <div className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
               {aiResponse}
             </div>
           </div>
         ) : aiLoading ? (
-          <div className="mt-3 pt-3 border-t border-gray-100">
-            <p className="text-sm text-gray-400 animate-pulse">
+          <div className="mt-3 pt-3 border-t border-card-border">
+            <p className="text-sm text-muted-foreground animate-pulse">
               AI辞書を読み込み中...
             </p>
           </div>
         ) : aiError ? (
-          <div className="mt-3 pt-3 border-t border-gray-100">
-            <p className="text-sm text-red-500">AI辞書の取得に失敗しました</p>
+          <div className="mt-3 pt-3 border-t border-card-border">
+            <p className="text-sm text-red-500 dark:text-red-400">AI辞書の取得に失敗しました</p>
             <button
               onClick={handleAiLookup}
-              className="text-xs text-blue-600 hover:underline mt-1"
+              className="text-xs text-accent hover:underline mt-1"
             >
               再試行
             </button>
@@ -132,7 +146,7 @@ export default function DictionaryPopup({
           {!aiResponse && !aiLoading && (
             <button
               onClick={handleAiLookup}
-              className="flex-1 py-2 text-sm rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
+              className="flex-1 py-2 text-sm rounded-lg bg-accent/10 text-accent hover:bg-accent/20 transition-colors"
             >
               詳しく（AI辞書）
             </button>
@@ -150,8 +164,8 @@ export default function DictionaryPopup({
             disabled={saved || !user || !wordId}
             className={`flex-1 py-2 text-sm rounded-lg transition-colors ${
               saved
-                ? "bg-green-100 text-green-700"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
+                : "bg-button-inactive-bg text-button-inactive-text hover:opacity-80"
             }`}
           >
             {saved ? "✓ 保存済み" : "＋ 保存"}

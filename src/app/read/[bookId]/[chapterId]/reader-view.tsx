@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { Book, Chapter, Sentence } from "@/types/database";
 import DictionaryPopup from "./dictionary-popup";
 import { useReadingProgress } from "@/hooks/use-reading-progress";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 type EnglishRatio = 25 | 50 | 75 | 100;
 
@@ -195,23 +196,23 @@ export default function ReaderView({
     : 0;
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-reader-bg">
       {/* ヘッダー */}
       {showHeader && (
-        <header className="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur border-b border-gray-200 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] z-20">
+        <header className="fixed top-0 left-0 right-0 bg-card-bg/95 backdrop-blur border-b border-card-border px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] z-20">
           <div className="max-w-2xl mx-auto flex items-center justify-between">
             <Link
               href={`/library/${book.id}`}
-              className="text-gray-500 hover:text-gray-700 text-sm"
+              className="text-muted-foreground hover:text-foreground text-sm"
             >
               ← 戻る
             </Link>
-            <span className="text-sm font-medium text-gray-700">
+            <span className="text-sm font-medium text-foreground">
               第{chapter.chapter_number}章
             </span>
             <button
               onClick={() => setShowHeader(false)}
-              className="text-gray-400 hover:text-gray-600 text-sm"
+              className="text-muted-foreground hover:text-foreground text-sm"
             >
               隠す
             </button>
@@ -247,10 +248,10 @@ export default function ReaderView({
                 ref={(el) => {
                   if (el) sentenceRefs.current.set(sentence.id, el);
                 }}
-                className={`inline transition-colors duration-150 rounded px-0.5 py-0.5 text-gray-900 border-b border-transparent ${
+                className={`inline transition-colors duration-150 rounded px-0.5 py-0.5 text-reader-text border-b border-transparent ${
                   isJapanese
-                    ? "bg-blue-50"
-                    : "bg-gray-50/50"
+                    ? "bg-sentence-ja-bg"
+                    : "bg-sentence-en-bg"
                 }`}
               >
                 {lang === "en"
@@ -270,7 +271,7 @@ export default function ReaderView({
                           onMouseMove={(e) => handlePressMove(e.clientX, e.clientY)}
                           onMouseUp={handlePressEnd}
                           onMouseLeave={handlePressEnd}
-                          className="hover:bg-yellow-100 rounded cursor-pointer select-none"
+                          className="hover:bg-word-hover rounded cursor-pointer select-none"
                         >
                           {part}
                         </span>
@@ -308,24 +309,24 @@ export default function ReaderView({
       )}
 
       {/* フッター: プログレス + 英語量スライダー */}
-      <footer className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur border-t border-gray-200 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] z-20">
+      <footer className="fixed bottom-0 left-0 right-0 bg-card-bg/95 backdrop-blur border-t border-card-border px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] z-20">
         <div className="max-w-2xl mx-auto">
           {/* プログレスバー */}
           <div className="flex items-center gap-2 mb-2">
-            <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+            <div className="flex-1 h-1.5 bg-progress-bg rounded-full overflow-hidden">
               <div
-                className="h-full bg-blue-500 rounded-full transition-all"
+                className="h-full bg-progress-fill rounded-full transition-all"
                 style={{ width: `${progress}%` }}
               />
             </div>
-            <span className="text-xs text-gray-400 w-10 text-right">
+            <span className="text-xs text-muted-foreground w-10 text-right">
               {progress}%
             </span>
           </div>
 
-          {/* 英語量スライダー */}
+          {/* 英語量スライダー + テーマ切替 */}
           <div className="flex items-center gap-3">
-            <span className="text-xs text-gray-500 w-14">英語量:</span>
+            <span className="text-xs text-muted-foreground w-14">英語量:</span>
             <div className="flex gap-1 flex-1">
               {([25, 50, 75, 100] as EnglishRatio[]).map((ratio) => (
                 <button
@@ -333,14 +334,15 @@ export default function ReaderView({
                   onClick={() => handleRatioChange(ratio)}
                   className={`flex-1 py-1 text-xs rounded-md transition-colors ${
                     englishRatio === ratio
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                      ? "bg-accent text-accent-foreground"
+                      : "bg-button-inactive-bg text-button-inactive-text hover:opacity-80"
                   }`}
                 >
                   {RATIO_LABELS[ratio]}
                 </button>
               ))}
             </div>
+            <ThemeToggle />
           </div>
         </div>
       </footer>
