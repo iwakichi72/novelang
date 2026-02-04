@@ -1,9 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Volume2, X, Check, Plus, Sparkles, RotateCcw } from "lucide-react";
 import { useAuth } from "@/components/auth-provider";
 import { createClient } from "@/lib/supabase/client";
 import { useTTS } from "@/hooks/use-tts";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function DictionaryPopup({
   word,
@@ -77,36 +80,44 @@ export default function DictionaryPopup({
     <>
       <div className="fixed inset-0 z-30" onClick={onClose} />
 
-      <div className="fixed left-4 right-4 z-40 max-w-md mx-auto bg-card-bg rounded-2xl shadow-xl dark:shadow-2xl dark:shadow-black/50 border border-card-border p-4 max-h-[60vh] overflow-y-auto" style={{ bottom: "calc(6rem + env(safe-area-inset-bottom, 0px))" }}>
+      <div
+        className="fixed left-4 right-4 z-40 max-w-md mx-auto bg-card rounded-2xl shadow-xl dark:shadow-2xl dark:shadow-black/50 border border-border p-4 max-h-[60vh] overflow-y-auto animate-in slide-in-from-bottom-4 fade-in duration-200"
+        style={{ bottom: "calc(6rem + env(safe-area-inset-bottom, 0px))" }}
+      >
         <div className="flex justify-between items-start mb-2">
           <div className="flex items-center gap-2">
             <h3 className="text-lg font-bold text-foreground">{word}</h3>
             {isSupported && (
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => speak(word, "en")}
                 disabled={speaking}
-                className="p-1 rounded-full text-muted-foreground hover:text-accent hover:bg-accent/10 transition-colors disabled:opacity-50"
+                className="size-8"
                 aria-label="発音を再生"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                </svg>
-              </button>
+                <Volume2 className="size-4" />
+              </Button>
             )}
           </div>
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onClose}
-            className="text-muted-foreground hover:text-foreground text-lg"
+            className="size-8"
           >
-            ✕
-          </button>
+            <X className="size-4" />
+          </Button>
         </div>
         {entry?.pronunciation && (
           <p className="text-xs text-muted-foreground -mt-1 mb-2">{entry.pronunciation}</p>
         )}
 
         {loading ? (
-          <p className="text-sm text-muted-foreground">読み込み中...</p>
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-4 w-40" />
+          </div>
         ) : entry ? (
           <div>
             <p className="text-xs text-muted-foreground mb-1">{entry.pos}</p>
@@ -118,40 +129,49 @@ export default function DictionaryPopup({
 
         {/* AI辞書セクション */}
         {aiResponse ? (
-          <div className="mt-3 pt-3 border-t border-card-border">
-            <p className="text-xs text-accent font-medium mb-1">AI辞書</p>
+          <div className="mt-3 pt-3 border-t border-border">
+            <p className="text-xs text-primary font-medium mb-1 flex items-center gap-1">
+              <Sparkles className="size-3" />
+              AI辞書
+            </p>
             <div className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
               {aiResponse}
             </div>
           </div>
         ) : aiLoading ? (
-          <div className="mt-3 pt-3 border-t border-card-border">
-            <p className="text-sm text-muted-foreground animate-pulse">
-              AI辞書を読み込み中...
-            </p>
+          <div className="mt-3 pt-3 border-t border-border space-y-2">
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-3/4" />
           </div>
         ) : aiError ? (
-          <div className="mt-3 pt-3 border-t border-card-border">
-            <p className="text-sm text-red-500 dark:text-red-400">AI辞書の取得に失敗しました</p>
-            <button
+          <div className="mt-3 pt-3 border-t border-border">
+            <p className="text-sm text-destructive">AI辞書の取得に失敗しました</p>
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={handleAiLookup}
-              className="text-xs text-accent hover:underline mt-1"
+              className="mt-1 gap-1 text-primary"
             >
+              <RotateCcw className="size-3" />
               再試行
-            </button>
+            </Button>
           </div>
         ) : null}
 
         <div className="flex gap-2 mt-4">
           {!aiResponse && !aiLoading && (
-            <button
+            <Button
+              variant="outline"
               onClick={handleAiLookup}
-              className="flex-1 py-2 text-sm rounded-lg bg-accent/10 text-accent hover:bg-accent/20 transition-colors"
+              className="flex-1 gap-1.5"
             >
+              <Sparkles className="size-4" />
               詳しく（AI辞書）
-            </button>
+            </Button>
           )}
-          <button
+          <Button
+            variant={saved ? "secondary" : "outline"}
             onClick={async () => {
               if (!user || !wordId) return;
               const { error } = await authSupabase.from("vocab_items").insert({
@@ -162,14 +182,24 @@ export default function DictionaryPopup({
               if (!error) setSaved(true);
             }}
             disabled={saved || !user || !wordId}
-            className={`flex-1 py-2 text-sm rounded-lg transition-colors ${
+            className={`flex-1 gap-1.5 ${
               saved
-                ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
-                : "bg-button-inactive-bg text-button-inactive-text hover:opacity-80"
+                ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800"
+                : ""
             }`}
           >
-            {saved ? "✓ 保存済み" : "＋ 保存"}
-          </button>
+            {saved ? (
+              <>
+                <Check className="size-4" />
+                保存済み
+              </>
+            ) : (
+              <>
+                <Plus className="size-4" />
+                保存
+              </>
+            )}
+          </Button>
         </div>
       </div>
     </>

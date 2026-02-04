@@ -2,10 +2,14 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
+import { ArrowLeft, EyeOff } from "lucide-react";
 import type { Book, Chapter, Sentence } from "@/types/database";
 import DictionaryPopup from "./dictionary-popup";
 import { useReadingProgress } from "@/hooks/use-reading-progress";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { cn } from "@/lib/utils";
 
 type EnglishRatio = 25 | 50 | 75 | 100;
 
@@ -198,27 +202,34 @@ export default function ReaderView({
   return (
     <div className="min-h-screen bg-reader-bg">
       {/* ヘッダー */}
-      {showHeader && (
-        <header className="fixed top-0 left-0 right-0 bg-card-bg/95 backdrop-blur border-b border-card-border px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] z-20">
-          <div className="max-w-2xl mx-auto flex items-center justify-between">
-            <Link
-              href={`/library/${book.id}`}
-              className="text-muted-foreground hover:text-foreground text-sm"
-            >
-              ← 戻る
+      <header
+        className={cn(
+          "fixed top-0 left-0 right-0 bg-card/95 backdrop-blur border-b border-border px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] z-20",
+          "transition-transform duration-300",
+          showHeader ? "translate-y-0" : "-translate-y-full"
+        )}
+      >
+        <div className="max-w-2xl mx-auto flex items-center justify-between">
+          <Button variant="ghost" size="sm" asChild>
+            <Link href={`/library/${book.id}`} className="gap-1.5">
+              <ArrowLeft className="size-4" />
+              戻る
             </Link>
-            <span className="text-sm font-medium text-foreground">
-              第{chapter.chapter_number}章
-            </span>
-            <button
-              onClick={() => setShowHeader(false)}
-              className="text-muted-foreground hover:text-foreground text-sm"
-            >
-              隠す
-            </button>
-          </div>
-        </header>
-      )}
+          </Button>
+          <span className="text-sm font-medium text-foreground">
+            第{chapter.chapter_number}章
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowHeader(false)}
+            className="gap-1"
+          >
+            <EyeOff className="size-4" />
+            隠す
+          </Button>
+        </div>
+      </header>
 
       {/* タップでヘッダー再表示 */}
       {!showHeader && (
@@ -309,16 +320,11 @@ export default function ReaderView({
       )}
 
       {/* フッター: プログレス + 英語量スライダー */}
-      <footer className="fixed bottom-0 left-0 right-0 bg-card-bg/95 backdrop-blur border-t border-card-border px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] z-20">
+      <footer className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur border-t border-border px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] z-20">
         <div className="max-w-2xl mx-auto">
           {/* プログレスバー */}
           <div className="flex items-center gap-2 mb-2">
-            <div className="flex-1 h-1.5 bg-progress-bg rounded-full overflow-hidden">
-              <div
-                className="h-full bg-progress-fill rounded-full transition-all"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
+            <Progress value={progress} className="flex-1 h-1.5" />
             <span className="text-xs text-muted-foreground w-10 text-right">
               {progress}%
             </span>
@@ -332,11 +338,12 @@ export default function ReaderView({
                 <button
                   key={ratio}
                   onClick={() => handleRatioChange(ratio)}
-                  className={`flex-1 py-1 text-xs rounded-md transition-colors ${
+                  className={cn(
+                    "flex-1 py-1 text-xs rounded-md transition-colors",
                     englishRatio === ratio
-                      ? "bg-accent text-accent-foreground"
-                      : "bg-button-inactive-bg text-button-inactive-text hover:opacity-80"
-                  }`}
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-secondary text-secondary-foreground hover:opacity-80"
+                  )}
                 >
                   {RATIO_LABELS[ratio]}
                 </button>
