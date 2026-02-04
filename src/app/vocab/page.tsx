@@ -2,8 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { ArrowLeft, Trash2, BookMarked } from "lucide-react";
 import { useAuth } from "@/components/auth-provider";
 import { createClient } from "@/lib/supabase/client";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type VocabWithDetails = {
   id: string;
@@ -103,20 +107,45 @@ export default function VocabPage() {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-muted flex items-center justify-center">
-        <p className="text-muted-foreground">読み込み中...</p>
+      <div className="min-h-screen bg-muted">
+        <header className="bg-card border-b border-border px-4 py-4">
+          <div className="max-w-2xl mx-auto flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Button variant="ghost" size="sm" asChild>
+                <Link href="/" className="gap-1.5">
+                  <ArrowLeft className="size-4" />
+                  戻る
+                </Link>
+              </Button>
+              <h1 className="text-lg font-bold text-foreground">単語帳</h1>
+            </div>
+          </div>
+        </header>
+        <main className="max-w-2xl mx-auto px-4 py-6 space-y-3">
+          {[...Array(3)].map((_, i) => (
+            <Card key={i}>
+              <CardContent className="p-4">
+                <Skeleton className="h-5 w-24 mb-2" />
+                <Skeleton className="h-4 w-40" />
+              </CardContent>
+            </Card>
+          ))}
+        </main>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-muted">
-      <header className="bg-card-bg border-b border-card-border px-4 py-4">
+      <header className="bg-card border-b border-border px-4 py-4">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link href="/" className="text-muted-foreground hover:text-foreground text-sm">
-              ← 戻る
-            </Link>
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/" className="gap-1.5">
+                <ArrowLeft className="size-4" />
+                戻る
+              </Link>
+            </Button>
             <h1 className="text-lg font-bold text-foreground">単語帳</h1>
           </div>
           <span className="text-sm text-muted-foreground">{items.length}語</span>
@@ -129,38 +158,42 @@ export default function VocabPage() {
             ログインすると単語帳が使えます
           </p>
         ) : items.length === 0 ? (
-          <p className="text-center text-muted-foreground py-12">
-            保存した単語はまだありません。<br />
-            読書中に単語をタップして「＋ 保存」を押してみましょう。
-          </p>
+          <div className="text-center py-12">
+            <BookMarked className="size-12 text-muted-foreground/50 mx-auto mb-4" />
+            <p className="text-muted-foreground">
+              保存した単語はまだありません。<br />
+              読書中に単語をタップして保存してみましょう。
+            </p>
+          </div>
         ) : (
           <div className="space-y-3">
             {items.map((item) => (
-              <div
-                key={item.id}
-                className="bg-card-bg rounded-xl border border-card-border p-4"
-              >
-                <div className="flex justify-between items-start">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline gap-2">
-                      <h3 className="font-bold text-base text-foreground">{item.word}</h3>
-                      <span className="text-xs text-muted-foreground">{item.pos}</span>
+              <Card key={item.id}>
+                <CardContent className="p-4">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline gap-2">
+                        <h3 className="font-bold text-base text-foreground">{item.word}</h3>
+                        <span className="text-xs text-muted-foreground">{item.pos}</span>
+                      </div>
+                      <p className="text-sm text-foreground mt-1">{item.meaning_ja}</p>
+                      {item.sentence_text_en && (
+                        <p className="text-xs text-muted-foreground mt-2 italic line-clamp-2">
+                          &ldquo;{item.sentence_text_en}&rdquo;
+                        </p>
+                      )}
                     </div>
-                    <p className="text-sm text-foreground mt-1">{item.meaning_ja}</p>
-                    {item.sentence_text_en && (
-                      <p className="text-xs text-muted-foreground mt-2 italic line-clamp-2">
-                        &ldquo;{item.sentence_text_en}&rdquo;
-                      </p>
-                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleDelete(item.id)}
+                      className="text-muted-foreground hover:text-destructive flex-shrink-0 ml-2"
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
                   </div>
-                  <button
-                    onClick={() => handleDelete(item.id)}
-                    className="text-muted-foreground hover:text-red-500 dark:hover:text-red-400 text-sm ml-3 flex-shrink-0"
-                  >
-                    削除
-                  </button>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         )}
