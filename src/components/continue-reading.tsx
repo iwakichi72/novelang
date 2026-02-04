@@ -2,8 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { BookOpen, ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "./auth-provider";
+import { Card, CardContent } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 
 type ProgressWithBook = {
   book_id: string;
@@ -92,29 +95,25 @@ export default function ContinueReading() {
   return (
     <div className="mb-6">
       <h2 className="text-lg font-semibold mb-3 text-foreground">続きから読む</h2>
-      <Link
-        href={`/read/${progress.book_id}/${progress.current_chapter_id}`}
-        className="block bg-accent/10 border border-accent/30 rounded-xl p-4 hover:bg-accent/20 transition-colors"
-      >
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-16 bg-accent/20 rounded-lg flex-shrink-0 flex items-center justify-center text-xl">
-            📖
-          </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-sm text-foreground">{progress.book_title_en}</h3>
-            <p className="text-xs text-muted-foreground">{progress.book_title_ja}</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              第{progress.chapter_number}章 · {chapterProgress}%
-            </p>
-            <div className="mt-2 h-1.5 bg-accent/30 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-accent rounded-full"
-                style={{ width: `${chapterProgress}%` }}
-              />
+      <Link href={`/read/${progress.book_id}/${progress.current_chapter_id}`}>
+        <Card className="hover:shadow-md transition-all duration-200 border-primary/30 bg-primary/5">
+          <CardContent className="flex items-center gap-3 p-4">
+            <div className="size-12 bg-primary/10 rounded-lg flex-shrink-0 flex items-center justify-center">
+              <BookOpen className="size-5 text-primary" />
             </div>
-          </div>
-          <span className="text-accent text-sm font-medium">読む →</span>
-        </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-sm text-foreground">{progress.book_title_en}</h3>
+              <p className="text-xs text-muted-foreground">{progress.book_title_ja}</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                第{progress.chapter_number}章 · {chapterProgress}%
+              </p>
+              <Progress value={chapterProgress} className="mt-2 h-1.5" />
+            </div>
+            <div className="flex items-center gap-1 text-primary text-sm font-medium">
+              読む <ArrowRight className="size-4" />
+            </div>
+          </CardContent>
+        </Card>
       </Link>
     </div>
   );

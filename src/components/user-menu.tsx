@@ -1,22 +1,21 @@
 "use client";
 
 import { useAuth } from "./auth-provider";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function UserMenu() {
   const { user, loading, signInWithGoogle, signOut } = useAuth();
 
   if (loading) {
-    return <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />;
+    return <Skeleton className="size-8 rounded-full" />;
   }
 
   if (!user) {
     return (
-      <button
-        onClick={signInWithGoogle}
-        className="text-sm bg-accent text-accent-foreground px-3 py-1.5 rounded-lg hover:bg-accent-hover transition-colors"
-      >
+      <Button onClick={signInWithGoogle} size="sm">
         ログイン
-      </button>
+      </Button>
     );
   }
 
@@ -25,12 +24,9 @@ export default function UserMenu() {
       <span className="text-xs text-muted-foreground hidden sm:inline">
         {user.email}
       </span>
-      <button
-        onClick={signOut}
-        className="text-xs text-muted-foreground hover:text-foreground"
-      >
+      <Button variant="ghost" size="sm" onClick={signOut} className="text-xs text-muted-foreground">
         ログアウト
-      </button>
+      </Button>
     </div>
   );
 }
