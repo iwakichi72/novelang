@@ -34,6 +34,21 @@ npm run dev
 
 http://localhost:3000 で開く。
 
+## テスト
+
+```bash
+# 監視モード
+npm test
+
+# 1回実行
+npm run test:run
+
+# カバレッジ
+npm run test:coverage
+```
+
+現在は `src/__tests__` で API ルート・取り込みロジック・読書ユーティリティなどを Vitest で検証している。
+
 ## 作品データ投入
 
 ```bash

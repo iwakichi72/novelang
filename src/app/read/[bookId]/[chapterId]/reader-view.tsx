@@ -10,6 +10,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import { getDefaultLang as getDefaultLangUtil } from "@/lib/reading-utils";
 
 type EnglishRatio = 25 | 50 | 75 | 100;
 
@@ -86,16 +87,7 @@ export default function ReaderView({
   // 英語量に基づいて、各文のデフォルト表示言語を決定
   const getDefaultLang = useCallback(
     (sentence: Sentence): "en" | "ja" => {
-      if (englishRatio === 100) return "en";
-      if (englishRatio === 25) {
-        // 難易度スコアが低い文（簡単な文）だけ英語
-        return sentence.difficulty_score < 0.3 ? "en" : "ja";
-      }
-      if (englishRatio === 50) {
-        return sentence.difficulty_score < 0.5 ? "en" : "ja";
-      }
-      // 75%: 難しい文だけ日本語
-      return sentence.difficulty_score < 0.7 ? "en" : "ja";
+      return getDefaultLangUtil(sentence.difficulty_score, englishRatio);
     },
     [englishRatio]
   );

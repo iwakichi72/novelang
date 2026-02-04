@@ -56,7 +56,7 @@ async function fetchGutenbergText(url: string): Promise<string> {
   return res.text();
 }
 
-function extractStory(
+export function extractStory(
   fullText: string,
   storyTitle: string,
   nextStoryTitle?: string
@@ -97,7 +97,7 @@ function extractStory(
 
 // ---------- 文分割 ----------
 
-function splitIntoSentences(text: string): string[] {
+export function splitIntoSentences(text: string): string[] {
   const paragraphs = text
     .split(/\n\s*\n/)
     .map((p) => p.replace(/\s+/g, " ").trim())
@@ -247,7 +247,7 @@ async function insertSentences(
 
 // ---------- 簡易難易度推定 ----------
 
-function estimateDifficulty(text: string): number {
+export function estimateDifficulty(text: string): number {
   const words = text.split(/\s+/);
   const avgWordLen =
     words.reduce((sum, w) => sum + w.replace(/[^a-zA-Z]/g, "").length, 0) /
@@ -258,7 +258,7 @@ function estimateDifficulty(text: string): number {
   return Math.round((lenScore * 0.6 + wordScore * 0.4) * 100) / 100;
 }
 
-function estimateCefr(text: string): string {
+export function estimateCefr(text: string): string {
   const score = estimateDifficulty(text);
   if (score < 0.2) return "A1";
   if (score < 0.35) return "A2";

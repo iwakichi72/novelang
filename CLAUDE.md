@@ -9,6 +9,8 @@ npm run dev          # 開発サーバー起動 (http://localhost:3000)
 npm run build        # プロダクションビルド
 npm run lint         # ESLint実行
 npm run start        # プロダクションサーバー起動
+npm test             # Vitestテスト実行（watchモード）
+npm run test:run     # テスト1回実行（CI用）
 
 # 作品データ投入
 npx tsx scripts/ingest-book.ts              # スタブ翻訳（API不要）
@@ -54,6 +56,15 @@ SUPABASE_SERVICE_ROLE_KEY
 GEMINI_API_KEY
 DEEPL_API_KEY
 ```
+
+## テスト
+
+- **フレームワーク**: Vitest 4 + jsdom + @testing-library/react
+- **設定**: `vitest.config.ts`、セットアップ `src/__tests__/setup.ts`
+- **テストファイル配置**: `src/__tests__/` 以下（`api/`, `lib/` サブディレクトリ）
+- **APIルートテストのモック戦略**: `vi.hoisted()` 内でSupabaseチェーンモックを生成し `vi.mock("@supabase/supabase-js")` に渡す。外部API（Gemini等）は `global.fetch` をモック
+- **注意**: `estimateDifficulty()` は平均単語長3文字未満の入力で負のスコアを返しうる（`Math.max` 未適用）
+- **ユーティリティ切り出し**: `getDefaultLang()` は `src/lib/reading-utils.ts` に独立関数として配置（テスタビリティのため `reader-view.tsx` から分離）
 
 ## コーディング規約
 - コミットメッセージは1行の日本語でシンプルに
