@@ -4,15 +4,7 @@ import { getBook, getChapters } from "@/lib/supabase";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-
-const CEFR_VARIANTS: Record<string, string> = {
-  A1: "bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 border-transparent",
-  A2: "bg-green-200 dark:bg-green-800/40 text-green-900 dark:text-green-200 border-transparent",
-  B1: "bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 border-transparent",
-  B2: "bg-blue-200 dark:bg-blue-800/40 text-blue-900 dark:text-blue-200 border-transparent",
-  C1: "bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-300 border-transparent",
-  C2: "bg-purple-200 dark:bg-purple-800/40 text-purple-900 dark:text-purple-200 border-transparent",
-};
+import { CEFR_VARIANTS } from "@/lib/cefr-utils";
 
 export default async function BookDetailPage({
   params,
@@ -48,8 +40,9 @@ export default async function BookDetailPage({
       <main className="max-w-2xl mx-auto px-4 py-6">
         <Card>
           <CardContent className="p-6">
-            <div className="flex items-start gap-2 mb-2">
-              <h2 className="text-xl font-bold text-foreground">{book.title_en}</h2>
+            {/* タイトル群: 整列（justify-between） */}
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <h2 className="text-xl font-bold text-foreground font-serif">{book.title_en}</h2>
               <Badge
                 variant="secondary"
                 className={CEFR_VARIANTS[book.cefr_level] ?? ""}
@@ -57,12 +50,15 @@ export default async function BookDetailPage({
                 {book.cefr_level}
               </Badge>
             </div>
-            <p className="text-base text-muted-foreground mb-1">{book.title_ja}</p>
-            <p className="text-sm text-muted-foreground mb-4">
+            {/* メタ群: 近接 */}
+            <p className="text-base text-muted-foreground">{book.title_ja}</p>
+            <p className="text-sm text-muted-foreground/70 mt-1 mb-4">
               {book.author_en} / {book.author_ja}
             </p>
-            <p className="text-sm text-foreground mb-4">{book.description_ja}</p>
-            <div className="flex gap-4 text-sm text-muted-foreground">
+            {/* 説明: コントラスト */}
+            <p className="text-sm text-foreground leading-relaxed mb-4">{book.description_ja}</p>
+            {/* 統計群 */}
+            <div className="flex gap-6 text-sm text-muted-foreground/70">
               <span>{book.total_chapters}章</span>
               <span>{book.total_sentences}文</span>
               <span>約{Math.round(book.total_words / 1000)}K語</span>
@@ -80,7 +76,7 @@ export default async function BookDetailPage({
 
         {chapters.length > 0 && (
           <div className="mt-6">
-            <h3 className="text-base font-semibold mb-3 text-foreground">章一覧</h3>
+            <h3 className="text-lg font-semibold mb-4 text-foreground">章一覧</h3>
             <div className="space-y-2">
               {chapters.map((ch) => (
                 <Link key={ch.id} href={`/read/${bookId}/${ch.id}`}>
@@ -94,8 +90,8 @@ export default async function BookDetailPage({
                           {ch.title_en}
                         </span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground">
+                      <div className="flex items-center gap-2 min-w-[80px] justify-end">
+                        <span className="text-xs text-muted-foreground/70">
                           {ch.sentence_count}文
                         </span>
                         <ChevronRight className="size-4 text-muted-foreground" />

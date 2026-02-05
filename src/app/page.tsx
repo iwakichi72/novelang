@@ -7,15 +7,7 @@ import StreakDisplay from "@/components/streak-display";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-
-const CEFR_VARIANTS: Record<string, string> = {
-  A1: "bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 border-transparent",
-  A2: "bg-green-200 dark:bg-green-800/40 text-green-900 dark:text-green-200 border-transparent",
-  B1: "bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 border-transparent",
-  B2: "bg-blue-200 dark:bg-blue-800/40 text-blue-900 dark:text-blue-200 border-transparent",
-  C1: "bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-300 border-transparent",
-  C2: "bg-purple-200 dark:bg-purple-800/40 text-purple-900 dark:text-purple-200 border-transparent",
-};
+import { CEFR_VARIANTS } from "@/lib/cefr-utils";
 
 export default async function HomePage() {
   const books = await getBooks();
@@ -25,8 +17,8 @@ export default async function HomePage() {
       <header className="bg-card border-b border-border px-4 py-4 pt-[max(1rem,env(safe-area-inset-top))]">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-foreground">Novelang</h1>
-            <p className="text-sm text-muted-foreground mt-1">
+            <h1 className="text-xl font-bold text-foreground tracking-tight">Novelang</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">
               英語小説を、あなたのペースで
             </p>
           </div>
@@ -51,18 +43,20 @@ export default async function HomePage() {
       <main className="max-w-2xl mx-auto px-4 py-6">
         <StreakDisplay />
         <ContinueReading />
+
         <h2 className="text-lg font-semibold mb-4 text-foreground">作品を選ぶ</h2>
-        <div className="space-y-4">
+        <div className="space-y-3">
           {books.map((book) => (
             <Link key={book.id} href={`/library/${book.id}`}>
               <Card className="hover:shadow-md hover:scale-[1.01] active:scale-[0.99] transition-all duration-200 cursor-pointer">
                 <CardContent className="flex gap-4 p-4">
-                  <div className="size-16 bg-muted rounded-lg flex-shrink-0 flex items-center justify-center">
-                    <BookText className="size-7 text-muted-foreground" />
+                  <div className="size-16 bg-amber-50 dark:bg-amber-950/30 rounded-lg flex-shrink-0 flex items-center justify-center">
+                    <BookText className="size-7 text-amber-600 dark:text-amber-400" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-start gap-2">
-                      <h3 className="font-semibold text-base leading-tight text-foreground">
+                    {/* タイトル群: 近接 + 整列 */}
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <h3 className="font-semibold text-base leading-tight text-foreground font-serif">
                         {book.title_en}
                       </h3>
                       <Badge
@@ -72,16 +66,19 @@ export default async function HomePage() {
                         {book.cefr_level}
                       </Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground mt-0.5">
+                    {/* メタ群: 近接 */}
+                    <p className="text-sm text-muted-foreground">
                       {book.title_ja}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-xs text-muted-foreground/70 mt-0.5">
                       {book.author_en}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
+                    {/* 説明: コントラスト（階層を分離） */}
+                    <p className="text-xs text-muted-foreground mt-3 line-clamp-2 leading-relaxed">
                       {book.description_ja}
                     </p>
-                    <div className="flex gap-3 mt-2 text-xs text-muted-foreground">
+                    {/* 統計群 */}
+                    <div className="flex gap-3 mt-2 text-xs text-muted-foreground/70">
                       <span>{book.total_chapters}章</span>
                       <span>約{Math.round(book.total_words / 1000)}K語</span>
                     </div>
