@@ -207,7 +207,7 @@ export default function ReaderView({
 
   return (
     <div className="min-h-screen bg-reader-bg">
-      {/* ヘッダー */}
+      {/* ヘッダー: 整列（3分割グリッド） */}
       <header
         className={cn(
           "fixed top-0 left-0 right-0 bg-card/95 backdrop-blur border-b border-border px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] z-20",
@@ -215,21 +215,21 @@ export default function ReaderView({
           showHeader ? "translate-y-0" : "-translate-y-full"
         )}
       >
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
+        <div className="max-w-2xl mx-auto grid grid-cols-[auto_1fr_auto] items-center gap-2">
           <Button variant="ghost" size="sm" asChild>
             <Link href={`/library/${book.id}`} className="gap-1.5">
               <ArrowLeft className="size-4" />
               戻る
             </Link>
           </Button>
-          <span className="text-sm font-medium text-foreground">
+          <span className="text-sm font-medium text-foreground text-center truncate">
             第{chapter.chapter_number}章
           </span>
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setShowHeader(false)}
-            className="gap-1"
+            className="gap-1 justify-self-end"
           >
             <EyeOff className="size-4" />
             隠す
@@ -246,14 +246,14 @@ export default function ReaderView({
         />
       )}
 
-      {/* 本文 */}
+      {/* 本文: セリフフォント + 文間余白拡大 */}
       <main
-        className={`max-w-2xl mx-auto px-6 pb-32 ${
+        className={`max-w-2xl mx-auto px-6 pb-32 font-serif ${
           showHeader ? "pt-16" : "pt-6"
         }`}
         style={{ lineHeight: "1.9", fontSize: "17px" }}
       >
-        <div className="space-y-1">
+        <div className="space-y-2">
           {sentences.map((sentence) => {
             const lang = getDisplayLang(sentence);
             const text = lang === "en" ? sentence.text_en : sentence.text_ja;
@@ -265,11 +265,12 @@ export default function ReaderView({
                 ref={(el) => {
                   if (el) sentenceRefs.current.set(sentence.id, el);
                 }}
-                className={`block transition-colors duration-150 rounded px-0.5 py-0.5 text-reader-text border-b border-transparent ${
+                className={cn(
+                  "block transition-colors duration-150 rounded-sm px-2 py-1 text-reader-text",
                   isJapanese
-                    ? "bg-sentence-ja-bg"
-                    : "bg-sentence-en-bg"
-                }`}
+                    ? "bg-sentence-ja-bg border-l-2 border-emerald-400/40 dark:border-emerald-500/30"
+                    : "bg-sentence-en-bg border-l-2 border-amber-400/40 dark:border-amber-500/30"
+                )}
               >
                 {lang === "en"
                   ? text.split(/(\s+)/).map((part, i) => {
@@ -325,30 +326,30 @@ export default function ReaderView({
         />
       )}
 
-      {/* フッター: プログレス + 英語量スライダー */}
+      {/* フッター: 整列（グリッド）+ コントラスト強化 */}
       <footer className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur border-t border-border px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] z-20">
         <div className="max-w-2xl mx-auto">
           {/* プログレスバー */}
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-3">
             <Progress value={progress} className="flex-1 h-1.5" />
             <span className="text-xs text-muted-foreground w-10 text-right">
               {progress}%
             </span>
           </div>
 
-          {/* 英語量スライダー + テーマ切替 */}
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-muted-foreground w-14">英語量:</span>
-            <div className="flex gap-1 flex-1">
+          {/* 英語量スライダー + テーマ切替: 整列 */}
+          <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
+            <span className="text-xs text-muted-foreground">英語量:</span>
+            <div className="flex gap-1">
               {([25, 50, 75, 100] as EnglishRatio[]).map((ratio) => (
                 <button
                   key={ratio}
                   onClick={() => handleRatioChange(ratio)}
                   className={cn(
-                    "flex-1 py-1 text-xs rounded-md transition-colors",
+                    "flex-1 py-1.5 text-xs rounded-md transition-all",
                     englishRatio === ratio
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-secondary text-secondary-foreground hover:opacity-80"
+                      ? "bg-primary text-primary-foreground font-semibold shadow-sm"
+                      : "bg-secondary/50 text-secondary-foreground hover:bg-secondary"
                   )}
                 >
                   {RATIO_LABELS[ratio]}
