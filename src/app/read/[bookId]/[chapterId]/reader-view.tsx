@@ -190,6 +190,12 @@ export default function ReaderView({
         if (!el) continue;
         if (el.getBoundingClientRect().top < viewportMiddle) pos = sentence.position;
       }
+      // ページ最下部到達時は最後の文のpositionを使用
+      const scrollBottom = window.scrollY + window.innerHeight;
+      const docHeight = document.documentElement.scrollHeight;
+      if (docHeight - scrollBottom < 50 && sentences.length > 0) {
+        pos = sentences[sentences.length - 1].position;
+      }
       setCurrentPosition(pos);
     };
     window.addEventListener("scroll", handleProgress, { passive: true });
@@ -259,7 +265,7 @@ export default function ReaderView({
                 ref={(el) => {
                   if (el) sentenceRefs.current.set(sentence.id, el);
                 }}
-                className={`inline transition-colors duration-150 rounded px-0.5 py-0.5 text-reader-text border-b border-transparent ${
+                className={`block transition-colors duration-150 rounded px-0.5 py-0.5 text-reader-text border-b border-transparent ${
                   isJapanese
                     ? "bg-sentence-ja-bg"
                     : "bg-sentence-en-bg"
