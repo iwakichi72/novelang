@@ -260,57 +260,71 @@ export default function ReaderView({
             const isJapanese = lang === "ja";
 
             return (
-              <span
+              <div
                 key={sentence.id}
                 ref={(el) => {
                   if (el) sentenceRefs.current.set(sentence.id, el);
                 }}
                 className={cn(
-                  "block transition-colors duration-150 rounded-sm px-2 py-1 text-reader-text",
+                  "flex transition-colors duration-150 rounded-sm text-reader-text",
                   isJapanese
-                    ? "bg-sentence-ja-bg border-l-2 border-emerald-400/40 dark:border-emerald-500/30"
-                    : "bg-sentence-en-bg border-l-2 border-amber-400/40 dark:border-amber-500/30"
+                    ? "bg-sentence-ja-bg"
+                    : "bg-sentence-en-bg"
                 )}
               >
-                {lang === "en"
-                  ? text.split(/(\s+)/).map((part, i) => {
-                      if (/^\s+$/.test(part)) return part;
-                      return (
-                        <span
-                          key={i}
-                          onClick={() =>
-                            handleWordTap(part, sentence.id, sentence.text_en)
-                          }
-                          onTouchStart={(e) => handlePressStart(sentence.id, e.touches[0].clientX, e.touches[0].clientY)}
-                          onTouchMove={(e) => handlePressMove(e.touches[0].clientX, e.touches[0].clientY)}
-                          onTouchEnd={handlePressEnd}
-                          onTouchCancel={handlePressEnd}
-                          onMouseDown={(e) => handlePressStart(sentence.id, e.clientX, e.clientY)}
-                          onMouseMove={(e) => handlePressMove(e.clientX, e.clientY)}
-                          onMouseUp={handlePressEnd}
-                          onMouseLeave={handlePressEnd}
-                          className="hover:bg-word-hover rounded cursor-pointer select-none"
-                        >
-                          {part}
-                        </span>
-                      );
-                    })
-                  : (
-                    <span
-                      onTouchStart={(e) => handlePressStart(sentence.id, e.touches[0].clientX, e.touches[0].clientY)}
-                      onTouchMove={(e) => handlePressMove(e.touches[0].clientX, e.touches[0].clientY)}
-                      onTouchEnd={handlePressEnd}
-                      onTouchCancel={handlePressEnd}
-                      onMouseDown={(e) => handlePressStart(sentence.id, e.clientX, e.clientY)}
-                      onMouseMove={(e) => handlePressMove(e.clientX, e.clientY)}
-                      onMouseUp={handlePressEnd}
-                      onMouseLeave={handlePressEnd}
-                      className="cursor-pointer select-none"
-                    >
-                      {text}
-                    </span>
-                  )}{" "}
-              </span>
+                {/* パレット: タップで即座に日英切替 */}
+                <button
+                  type="button"
+                  onClick={() => handleSentenceTap(sentence.id)}
+                  aria-label="日英切替"
+                  className={cn(
+                    "flex-shrink-0 w-2 rounded-l-sm transition-colors cursor-pointer",
+                    isJapanese
+                      ? "bg-emerald-400/40 dark:bg-emerald-500/30 hover:bg-emerald-400/60 dark:hover:bg-emerald-500/50"
+                      : "bg-amber-400/40 dark:bg-amber-500/30 hover:bg-amber-400/60 dark:hover:bg-amber-500/50"
+                  )}
+                />
+                <span className="flex-1 px-2 py-1">
+                  {lang === "en"
+                    ? text.split(/(\s+)/).map((part, i) => {
+                        if (/^\s+$/.test(part)) return part;
+                        return (
+                          <span
+                            key={i}
+                            onClick={() =>
+                              handleWordTap(part, sentence.id, sentence.text_en)
+                            }
+                            onTouchStart={(e) => handlePressStart(sentence.id, e.touches[0].clientX, e.touches[0].clientY)}
+                            onTouchMove={(e) => handlePressMove(e.touches[0].clientX, e.touches[0].clientY)}
+                            onTouchEnd={handlePressEnd}
+                            onTouchCancel={handlePressEnd}
+                            onMouseDown={(e) => handlePressStart(sentence.id, e.clientX, e.clientY)}
+                            onMouseMove={(e) => handlePressMove(e.clientX, e.clientY)}
+                            onMouseUp={handlePressEnd}
+                            onMouseLeave={handlePressEnd}
+                            className="hover:bg-word-hover rounded cursor-pointer select-none"
+                          >
+                            {part}
+                          </span>
+                        );
+                      })
+                    : (
+                      <span
+                        onTouchStart={(e) => handlePressStart(sentence.id, e.touches[0].clientX, e.touches[0].clientY)}
+                        onTouchMove={(e) => handlePressMove(e.touches[0].clientX, e.touches[0].clientY)}
+                        onTouchEnd={handlePressEnd}
+                        onTouchCancel={handlePressEnd}
+                        onMouseDown={(e) => handlePressStart(sentence.id, e.clientX, e.clientY)}
+                        onMouseMove={(e) => handlePressMove(e.clientX, e.clientY)}
+                        onMouseUp={handlePressEnd}
+                        onMouseLeave={handlePressEnd}
+                        className="cursor-pointer select-none"
+                      >
+                        {text}
+                      </span>
+                    )}{" "}
+                </span>
+              </div>
             );
           })}
         </div>
