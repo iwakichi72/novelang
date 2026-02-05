@@ -1,6 +1,6 @@
 # Novelang 進捗管理シート
 
-> 最終更新: 2026-02-01
+> 最終更新: 2026-02-05
 
 ## MVP バックログ
 
@@ -23,7 +23,7 @@
 - [x] #14 読書進捗API（保存/取得）— スクロール追跡＋デバウンス保存
 - [x] #15 自動しおり（最終位置保存）— 位置復元付き
 - [x] #16 ホーム画面（続きから読む）— ContinueReadingコンポーネント
-- [ ] #17 Vercelデプロイ＋本番環境構築
+- [x] #17 Vercelデプロイ＋本番環境構築 — https://novelang.vercel.app/
 
 ## β バックログ
 
@@ -41,7 +41,7 @@
 ## 技術メモ
 
 - **DB**: Supabase PostgreSQL（プロジェクトID: oqckkhxnxebhiukmvtrz）
-- **ホスティング**: Vercel（未デプロイ）
+- **ホスティング**: Vercel（https://novelang.vercel.app/）
 - **認証**: Supabase Auth + Google Sign-In（@supabase/ssr使用、RLS設定済み）
 - **UUID生成**: `gen_random_uuid()`（Supabase標準）
 - **シードデータ**: 3冊・2章・10文・20語投入済み
