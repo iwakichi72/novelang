@@ -190,6 +190,12 @@ export default function ReaderView({
         if (!el) continue;
         if (el.getBoundingClientRect().top < viewportMiddle) pos = sentence.position;
       }
+      // ページ最下部到達時は最後の文のpositionを使用
+      const scrollBottom = window.scrollY + window.innerHeight;
+      const docHeight = document.documentElement.scrollHeight;
+      if (docHeight - scrollBottom < 50 && sentences.length > 0) {
+        pos = sentences[sentences.length - 1].position;
+      }
       setCurrentPosition(pos);
     };
     window.addEventListener("scroll", handleProgress, { passive: true });
@@ -201,7 +207,7 @@ export default function ReaderView({
 
   return (
     <div className="min-h-screen bg-reader-bg">
-      {/* ヘッダー */}
+      {/* ヘッダー: 整列（3分割グリッド） */}
       <header
         className={cn(
           "fixed top-0 left-0 right-0 bg-card/95 backdrop-blur border-b border-border px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] z-20",
@@ -209,21 +215,21 @@ export default function ReaderView({
           showHeader ? "translate-y-0" : "-translate-y-full"
         )}
       >
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
+        <div className="max-w-2xl mx-auto grid grid-cols-[auto_1fr_auto] items-center gap-2">
           <Button variant="ghost" size="sm" asChild>
             <Link href={`/library/${book.id}`} className="gap-1.5">
               <ArrowLeft className="size-4" />
               戻る
             </Link>
           </Button>
-          <span className="text-sm font-medium text-foreground">
+          <span className="text-sm font-medium text-foreground text-center truncate">
             第{chapter.chapter_number}章
           </span>
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setShowHeader(false)}
-            className="gap-1"
+            className="gap-1 justify-self-end"
           >
             <EyeOff className="size-4" />
             隠す
@@ -240,70 +246,85 @@ export default function ReaderView({
         />
       )}
 
-      {/* 本文 */}
+      {/* 本文: セリフフォント + 文間余白拡大 */}
       <main
-        className={`max-w-2xl mx-auto px-6 pb-32 ${
+        className={`max-w-2xl mx-auto px-6 pb-32 font-serif ${
           showHeader ? "pt-16" : "pt-6"
         }`}
         style={{ lineHeight: "1.9", fontSize: "17px" }}
       >
-        <div className="space-y-1">
+        <div className="space-y-2">
           {sentences.map((sentence) => {
             const lang = getDisplayLang(sentence);
             const text = lang === "en" ? sentence.text_en : sentence.text_ja;
             const isJapanese = lang === "ja";
 
             return (
-              <span
+              <div
                 key={sentence.id}
                 ref={(el) => {
                   if (el) sentenceRefs.current.set(sentence.id, el);
                 }}
-                className={`inline transition-colors duration-150 rounded px-0.5 py-0.5 text-reader-text border-b border-transparent ${
+                className={cn(
+                  "flex transition-colors duration-150 rounded-sm text-reader-text",
                   isJapanese
                     ? "bg-sentence-ja-bg"
                     : "bg-sentence-en-bg"
-                }`}
+                )}
               >
-                {lang === "en"
-                  ? text.split(/(\s+)/).map((part, i) => {
-                      if (/^\s+$/.test(part)) return part;
-                      return (
-                        <span
-                          key={i}
-                          onClick={() =>
-                            handleWordTap(part, sentence.id, sentence.text_en)
-                          }
-                          onTouchStart={(e) => handlePressStart(sentence.id, e.touches[0].clientX, e.touches[0].clientY)}
-                          onTouchMove={(e) => handlePressMove(e.touches[0].clientX, e.touches[0].clientY)}
-                          onTouchEnd={handlePressEnd}
-                          onTouchCancel={handlePressEnd}
-                          onMouseDown={(e) => handlePressStart(sentence.id, e.clientX, e.clientY)}
-                          onMouseMove={(e) => handlePressMove(e.clientX, e.clientY)}
-                          onMouseUp={handlePressEnd}
-                          onMouseLeave={handlePressEnd}
-                          className="hover:bg-word-hover rounded cursor-pointer select-none"
-                        >
-                          {part}
-                        </span>
-                      );
-                    })
-                  : (
-                    <span
-                      onTouchStart={(e) => handlePressStart(sentence.id, e.touches[0].clientX, e.touches[0].clientY)}
-                      onTouchMove={(e) => handlePressMove(e.touches[0].clientX, e.touches[0].clientY)}
-                      onTouchEnd={handlePressEnd}
-                      onTouchCancel={handlePressEnd}
-                      onMouseDown={(e) => handlePressStart(sentence.id, e.clientX, e.clientY)}
-                      onMouseMove={(e) => handlePressMove(e.clientX, e.clientY)}
-                      onMouseUp={handlePressEnd}
-                      onMouseLeave={handlePressEnd}
-                      className="cursor-pointer select-none"
-                    >
-                      {text}
-                    </span>
-                  )}{" "}
-              </span>
+                {/* パレット: タップで即座に日英切替 */}
+                <button
+                  type="button"
+                  onClick={() => handleSentenceTap(sentence.id)}
+                  aria-label="日英切替"
+                  className={cn(
+                    "flex-shrink-0 w-2 rounded-l-sm transition-colors cursor-pointer",
+                    isJapanese
+                      ? "bg-emerald-400/40 dark:bg-emerald-500/30 hover:bg-emerald-400/60 dark:hover:bg-emerald-500/50"
+                      : "bg-amber-400/40 dark:bg-amber-500/30 hover:bg-amber-400/60 dark:hover:bg-amber-500/50"
+                  )}
+                />
+                <span className="flex-1 px-2 py-1">
+                  {lang === "en"
+                    ? text.split(/(\s+)/).map((part, i) => {
+                        if (/^\s+$/.test(part)) return part;
+                        return (
+                          <span
+                            key={i}
+                            onClick={() =>
+                              handleWordTap(part, sentence.id, sentence.text_en)
+                            }
+                            onTouchStart={(e) => handlePressStart(sentence.id, e.touches[0].clientX, e.touches[0].clientY)}
+                            onTouchMove={(e) => handlePressMove(e.touches[0].clientX, e.touches[0].clientY)}
+                            onTouchEnd={handlePressEnd}
+                            onTouchCancel={handlePressEnd}
+                            onMouseDown={(e) => handlePressStart(sentence.id, e.clientX, e.clientY)}
+                            onMouseMove={(e) => handlePressMove(e.clientX, e.clientY)}
+                            onMouseUp={handlePressEnd}
+                            onMouseLeave={handlePressEnd}
+                            className="hover:bg-word-hover rounded cursor-pointer select-none"
+                          >
+                            {part}
+                          </span>
+                        );
+                      })
+                    : (
+                      <span
+                        onTouchStart={(e) => handlePressStart(sentence.id, e.touches[0].clientX, e.touches[0].clientY)}
+                        onTouchMove={(e) => handlePressMove(e.touches[0].clientX, e.touches[0].clientY)}
+                        onTouchEnd={handlePressEnd}
+                        onTouchCancel={handlePressEnd}
+                        onMouseDown={(e) => handlePressStart(sentence.id, e.clientX, e.clientY)}
+                        onMouseMove={(e) => handlePressMove(e.clientX, e.clientY)}
+                        onMouseUp={handlePressEnd}
+                        onMouseLeave={handlePressEnd}
+                        className="cursor-pointer select-none"
+                      >
+                        {text}
+                      </span>
+                    )}{" "}
+                </span>
+              </div>
             );
           })}
         </div>
@@ -319,30 +340,30 @@ export default function ReaderView({
         />
       )}
 
-      {/* フッター: プログレス + 英語量スライダー */}
+      {/* フッター: 整列（グリッド）+ コントラスト強化 */}
       <footer className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur border-t border-border px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] z-20">
         <div className="max-w-2xl mx-auto">
           {/* プログレスバー */}
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-3">
             <Progress value={progress} className="flex-1 h-1.5" />
             <span className="text-xs text-muted-foreground w-10 text-right">
               {progress}%
             </span>
           </div>
 
-          {/* 英語量スライダー + テーマ切替 */}
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-muted-foreground w-14">英語量:</span>
-            <div className="flex gap-1 flex-1">
+          {/* 英語量スライダー + テーマ切替: 整列 */}
+          <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
+            <span className="text-xs text-muted-foreground">英語量:</span>
+            <div className="flex gap-1">
               {([25, 50, 75, 100] as EnglishRatio[]).map((ratio) => (
                 <button
                   key={ratio}
                   onClick={() => handleRatioChange(ratio)}
                   className={cn(
-                    "flex-1 py-1 text-xs rounded-md transition-colors",
+                    "flex-1 py-1.5 text-xs rounded-md transition-all",
                     englishRatio === ratio
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-secondary text-secondary-foreground hover:opacity-80"
+                      ? "bg-primary text-primary-foreground font-semibold shadow-sm"
+                      : "bg-secondary/50 text-secondary-foreground hover:bg-secondary"
                   )}
                 >
                   {RATIO_LABELS[ratio]}

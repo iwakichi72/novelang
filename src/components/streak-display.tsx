@@ -47,17 +47,17 @@ export default function StreakDisplay() {
 
   return (
     <Card className="mb-6">
-      <CardContent className="flex items-center gap-4 p-4">
+      <CardContent className="flex items-center gap-6 p-4">
         {/* ストリーク */}
         <div className="flex items-center gap-2">
-          <Flame className="size-6 text-orange-500" />
+          <Flame className="size-6 text-amber-500" />
           <div>
             <p className="text-2xl font-bold text-foreground">{currentStreak}</p>
             <p className="text-xs text-muted-foreground">連続日数</p>
           </div>
         </div>
 
-        <div className="w-px h-10 bg-border" />
+        <div className="w-px h-12 bg-border" />
 
         {/* 今日の読書量 */}
         <div>
@@ -70,7 +70,7 @@ export default function StreakDisplay() {
 
         {currentStreak > 0 && (
           <>
-            <div className="w-px h-10 bg-border" />
+            <div className="w-px h-12 bg-border" />
             <div className="flex-1 text-right">
               <p className="text-xs text-muted-foreground flex items-center justify-end gap-1">
                 {currentStreak >= 7 ? (
