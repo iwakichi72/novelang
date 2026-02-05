@@ -1,9 +1,15 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
+import { ArrowLeft, EyeOff } from "lucide-react";
 import type { Book, Chapter, Sentence } from "@/types/database";
 import DictionaryPopup from "./dictionary-popup";
+import { useReadingProgress } from "@/hooks/use-reading-progress";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { cn } from "@/lib/utils";
 
 type EnglishRatio = 25 | 50 | 75 | 100;
 
@@ -31,8 +37,51 @@ export default function ReaderView({
   const [selectedWord, setSelectedWord] = useState<{
     word: string;
     sentenceId: string;
+    sentenceText: string;
     rect: { x: number; y: number };
   } | null>(null);
+
+  // 読書進捗フック
+  const { savedPosition, saveProgress } = useReadingProgress(book.id, chapter.id);
+  const sentenceRefs = useRef<Map<string, HTMLElement>>(new Map());
+  const hasRestoredPosition = useRef(false);
+
+  // 保存済み位置にスクロール復元
+  useEffect(() => {
+    if (hasRestoredPosition.current || savedPosition === 0) return;
+    const targetSentence = sentences.find((s) => s.position === savedPosition);
+    if (targetSentence) {
+      const el = sentenceRefs.current.get(targetSentence.id);
+      if (el) {
+        el.scrollIntoView({ block: "center" });
+        hasRestoredPosition.current = true;
+      }
+    }
+  }, [savedPosition, sentences]);
+
+  // スクロールで読んだ位置を追跡・保存
+  useEffect(() => {
+    const handleScroll = () => {
+      const viewportMiddle = window.innerHeight / 2;
+      let lastVisiblePosition = 0;
+
+      for (const sentence of sentences) {
+        const el = sentenceRefs.current.get(sentence.id);
+        if (!el) continue;
+        const rect = el.getBoundingClientRect();
+        if (rect.top < viewportMiddle) {
+          lastVisiblePosition = sentence.position;
+        }
+      }
+
+      if (lastVisiblePosition > 0) {
+        saveProgress(lastVisiblePosition, lastVisiblePosition);
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [sentences, saveProgress]);
 
   // 英語量に基づいて、各文のデフォルト表示言語を決定
   const getDefaultLang = useCallback(
@@ -78,49 +127,109 @@ export default function ReaderView({
     setFlippedSentences(new Set());
   };
 
-  // 単語の長押し（実装はクリックで代用、モバイルでは長押し）
-  const handleWordClick = (
-    e: React.MouseEvent,
+  // 長押し管理用ref
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressTriggered = useRef(false);
+  const pressStartPos = useRef<{ x: number; y: number } | null>(null);
+
+  // 単語タップ → 辞書ポップアップ
+  const handleWordTap = (
     word: string,
-    sentenceId: string
+    sentenceId: string,
+    sentenceText: string
   ) => {
-    e.stopPropagation();
+    if (longPressTriggered.current) return;
     const cleaned = word.replace(/[^a-zA-Z'-]/g, "").toLowerCase();
     if (cleaned.length < 2) return;
     setSelectedWord({
       word: cleaned,
       sentenceId,
-      rect: { x: e.clientX, y: e.clientY },
+      sentenceText,
+      rect: { x: 0, y: 0 },
     });
   };
 
-  // 進捗計算
-  const progress = Math.round((sentences.length / (chapter.sentence_count || sentences.length)) * 100);
+  // 長押し開始（2秒で日英切替）
+  const handlePressStart = (sentenceId: string, x: number, y: number) => {
+    longPressTriggered.current = false;
+    pressStartPos.current = { x, y };
+    longPressTimer.current = setTimeout(() => {
+      longPressTriggered.current = true;
+      handleSentenceTap(sentenceId);
+    }, 2000);
+  };
+
+  // スライドで長押しキャンセル（10px以上移動）
+  const handlePressMove = (x: number, y: number) => {
+    if (!pressStartPos.current || !longPressTimer.current) return;
+    const dx = x - pressStartPos.current.x;
+    const dy = y - pressStartPos.current.y;
+    if (dx * dx + dy * dy > 100) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
+
+  // 長押しキャンセル
+  const handlePressEnd = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    pressStartPos.current = null;
+  };
+
+  // 進捗計算（現在のスクロール位置ベース）
+  const [currentPosition, setCurrentPosition] = useState(0);
+  useEffect(() => {
+    const handleProgress = () => {
+      const viewportMiddle = window.innerHeight / 2;
+      let pos = 0;
+      for (const sentence of sentences) {
+        const el = sentenceRefs.current.get(sentence.id);
+        if (!el) continue;
+        if (el.getBoundingClientRect().top < viewportMiddle) pos = sentence.position;
+      }
+      setCurrentPosition(pos);
+    };
+    window.addEventListener("scroll", handleProgress, { passive: true });
+    return () => window.removeEventListener("scroll", handleProgress);
+  }, [sentences]);
+  const progress = sentences.length > 0
+    ? Math.round((currentPosition / sentences.length) * 100)
+    : 0;
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-reader-bg">
       {/* ヘッダー */}
-      {showHeader && (
-        <header className="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur border-b border-gray-200 px-4 py-3 z-20">
-          <div className="max-w-2xl mx-auto flex items-center justify-between">
-            <Link
-              href={`/library/${book.id}`}
-              className="text-gray-500 hover:text-gray-700 text-sm"
-            >
-              ← 戻る
+      <header
+        className={cn(
+          "fixed top-0 left-0 right-0 bg-card/95 backdrop-blur border-b border-border px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] z-20",
+          "transition-transform duration-300",
+          showHeader ? "translate-y-0" : "-translate-y-full"
+        )}
+      >
+        <div className="max-w-2xl mx-auto flex items-center justify-between">
+          <Button variant="ghost" size="sm" asChild>
+            <Link href={`/library/${book.id}`} className="gap-1.5">
+              <ArrowLeft className="size-4" />
+              戻る
             </Link>
-            <span className="text-sm font-medium text-gray-700">
-              第{chapter.chapter_number}章
-            </span>
-            <button
-              onClick={() => setShowHeader(false)}
-              className="text-gray-400 hover:text-gray-600 text-sm"
-            >
-              隠す
-            </button>
-          </div>
-        </header>
-      )}
+          </Button>
+          <span className="text-sm font-medium text-foreground">
+            第{chapter.chapter_number}章
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowHeader(false)}
+            className="gap-1"
+          >
+            <EyeOff className="size-4" />
+            隠す
+          </Button>
+        </div>
+      </header>
 
       {/* タップでヘッダー再表示 */}
       {!showHeader && (
@@ -147,11 +256,13 @@ export default function ReaderView({
             return (
               <span
                 key={sentence.id}
-                onClick={() => handleSentenceTap(sentence.id)}
-                className={`inline cursor-pointer transition-colors duration-150 rounded px-0.5 py-0.5 text-gray-900 border-b border-transparent hover:border-gray-200 ${
+                ref={(el) => {
+                  if (el) sentenceRefs.current.set(sentence.id, el);
+                }}
+                className={`inline transition-colors duration-150 rounded px-0.5 py-0.5 text-reader-text border-b border-transparent ${
                   isJapanese
-                    ? "bg-blue-50"
-                    : "bg-gray-50/50 hover:bg-gray-100/50"
+                    ? "bg-sentence-ja-bg"
+                    : "bg-sentence-en-bg"
                 }`}
               >
                 {lang === "en"
@@ -160,16 +271,38 @@ export default function ReaderView({
                       return (
                         <span
                           key={i}
-                          onClick={(e) =>
-                            handleWordClick(e, part, sentence.id)
+                          onClick={() =>
+                            handleWordTap(part, sentence.id, sentence.text_en)
                           }
-                          className="hover:bg-yellow-100 rounded cursor-pointer"
+                          onTouchStart={(e) => handlePressStart(sentence.id, e.touches[0].clientX, e.touches[0].clientY)}
+                          onTouchMove={(e) => handlePressMove(e.touches[0].clientX, e.touches[0].clientY)}
+                          onTouchEnd={handlePressEnd}
+                          onTouchCancel={handlePressEnd}
+                          onMouseDown={(e) => handlePressStart(sentence.id, e.clientX, e.clientY)}
+                          onMouseMove={(e) => handlePressMove(e.clientX, e.clientY)}
+                          onMouseUp={handlePressEnd}
+                          onMouseLeave={handlePressEnd}
+                          className="hover:bg-word-hover rounded cursor-pointer select-none"
                         >
                           {part}
                         </span>
                       );
                     })
-                  : text}{" "}
+                  : (
+                    <span
+                      onTouchStart={(e) => handlePressStart(sentence.id, e.touches[0].clientX, e.touches[0].clientY)}
+                      onTouchMove={(e) => handlePressMove(e.touches[0].clientX, e.touches[0].clientY)}
+                      onTouchEnd={handlePressEnd}
+                      onTouchCancel={handlePressEnd}
+                      onMouseDown={(e) => handlePressStart(sentence.id, e.clientX, e.clientY)}
+                      onMouseMove={(e) => handlePressMove(e.clientX, e.clientY)}
+                      onMouseUp={handlePressEnd}
+                      onMouseLeave={handlePressEnd}
+                      className="cursor-pointer select-none"
+                    >
+                      {text}
+                    </span>
+                  )}{" "}
               </span>
             );
           })}
@@ -181,44 +314,42 @@ export default function ReaderView({
         <DictionaryPopup
           word={selectedWord.word}
           sentenceId={selectedWord.sentenceId}
+          sentenceText={selectedWord.sentenceText}
           onClose={() => setSelectedWord(null)}
         />
       )}
 
       {/* フッター: プログレス + 英語量スライダー */}
-      <footer className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur border-t border-gray-200 px-4 py-3 z-20">
+      <footer className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur border-t border-border px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] z-20">
         <div className="max-w-2xl mx-auto">
           {/* プログレスバー */}
           <div className="flex items-center gap-2 mb-2">
-            <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-blue-500 rounded-full transition-all"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-            <span className="text-xs text-gray-400 w-10 text-right">
+            <Progress value={progress} className="flex-1 h-1.5" />
+            <span className="text-xs text-muted-foreground w-10 text-right">
               {progress}%
             </span>
           </div>
 
-          {/* 英語量スライダー */}
+          {/* 英語量スライダー + テーマ切替 */}
           <div className="flex items-center gap-3">
-            <span className="text-xs text-gray-500 w-14">英語量:</span>
+            <span className="text-xs text-muted-foreground w-14">英語量:</span>
             <div className="flex gap-1 flex-1">
               {([25, 50, 75, 100] as EnglishRatio[]).map((ratio) => (
                 <button
                   key={ratio}
                   onClick={() => handleRatioChange(ratio)}
-                  className={`flex-1 py-1 text-xs rounded-md transition-colors ${
+                  className={cn(
+                    "flex-1 py-1 text-xs rounded-md transition-colors",
                     englishRatio === ratio
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                  }`}
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-secondary text-secondary-foreground hover:opacity-80"
+                  )}
                 >
                   {RATIO_LABELS[ratio]}
                 </button>
               ))}
             </div>
+            <ThemeToggle />
           </div>
         </div>
       </footer>

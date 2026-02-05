@@ -1,12 +1,9 @@
 -- Novelang 初期スキーマ
 -- Supabase SQL Editor で実行するか、supabase db push で適用
 
--- 拡張機能
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
 -- ========== books ==========
 CREATE TABLE books (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   title_en TEXT NOT NULL,
   title_ja TEXT NOT NULL,
   author_en TEXT NOT NULL,
@@ -25,7 +22,7 @@ CREATE TABLE books (
 
 -- ========== chapters ==========
 CREATE TABLE chapters (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   book_id UUID NOT NULL REFERENCES books(id) ON DELETE CASCADE,
   chapter_number INT NOT NULL,
   title_en TEXT NOT NULL DEFAULT '',
@@ -39,7 +36,7 @@ CREATE INDEX idx_chapters_book_id ON chapters(book_id);
 
 -- ========== sentences ==========
 CREATE TABLE sentences (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   chapter_id UUID NOT NULL REFERENCES chapters(id) ON DELETE CASCADE,
   position INT NOT NULL,
   text_en TEXT NOT NULL,
@@ -55,7 +52,7 @@ CREATE INDEX idx_sentences_chapter_difficulty ON sentences(chapter_id, difficult
 
 -- ========== word_entries（基本辞書） ==========
 CREATE TABLE word_entries (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   word TEXT NOT NULL UNIQUE,
   pos TEXT NOT NULL DEFAULT '',
   meaning_ja TEXT NOT NULL DEFAULT '',
@@ -67,7 +64,7 @@ CREATE INDEX idx_word_entries_word ON word_entries(word);
 
 -- ========== reading_progress ==========
 CREATE TABLE reading_progress (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL,
   book_id UUID NOT NULL REFERENCES books(id) ON DELETE CASCADE,
   current_chapter_id UUID REFERENCES chapters(id),
@@ -83,7 +80,7 @@ CREATE INDEX idx_reading_progress_user_last ON reading_progress(user_id, last_re
 
 -- ========== vocab_items ==========
 CREATE TABLE vocab_items (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL,
   word_id UUID NOT NULL REFERENCES word_entries(id),
   sentence_id UUID NOT NULL REFERENCES sentences(id),
@@ -95,7 +92,7 @@ CREATE INDEX idx_vocab_items_user ON vocab_items(user_id, created_at DESC);
 
 -- ========== bookmarks ==========
 CREATE TABLE bookmarks (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL,
   sentence_id UUID NOT NULL REFERENCES sentences(id),
   note TEXT,
@@ -106,7 +103,7 @@ CREATE INDEX idx_bookmarks_user ON bookmarks(user_id, created_at DESC);
 
 -- ========== ai_dictionary_cache ==========
 CREATE TABLE ai_dictionary_cache (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   word TEXT NOT NULL,
   sentence_id UUID NOT NULL REFERENCES sentences(id),
   response_ja TEXT NOT NULL,
@@ -116,7 +113,7 @@ CREATE TABLE ai_dictionary_cache (
 
 -- ========== reading_sessions ==========
 CREATE TABLE reading_sessions (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL,
   book_id UUID NOT NULL REFERENCES books(id),
   started_at TIMESTAMPTZ NOT NULL DEFAULT now(),
