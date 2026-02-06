@@ -27,11 +27,7 @@ export default function ContinueReading() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (authLoading) return;
-    if (!user) {
-      setLoading(false);
-      return;
-    }
+    if (authLoading || !user) return;
 
     const supabase = createClient();
     const fetchProgress = async () => {
@@ -86,7 +82,7 @@ export default function ContinueReading() {
     fetchProgress();
   }, [user, authLoading]);
 
-  if (authLoading || loading || !progress) return null;
+  if (authLoading || !user || (user && loading) || !progress) return null;
 
   const chapterProgress = progress.chapter_sentence_count > 0
     ? Math.round((progress.current_sentence_position / progress.chapter_sentence_count) * 100)

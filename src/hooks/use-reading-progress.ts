@@ -7,7 +7,7 @@ import type { ReadingProgress } from "@/types/database";
 
 export function useReadingProgress(bookId: string, chapterId: string) {
   const { user } = useAuth();
-  const supabase = createClient();
+  const supabaseRef = useRef(createClient());
   const [progress, setProgress] = useState<ReadingProgress | null>(null);
   const [loading, setLoading] = useState(true);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -17,11 +17,9 @@ export function useReadingProgress(bookId: string, chapterId: string) {
 
   // 進捗を取得
   useEffect(() => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
+    if (!user) return;
 
+    const supabase = supabaseRef.current;
     const fetchProgress = async () => {
       const { data } = await supabase
         .from("reading_progress")
@@ -58,7 +56,7 @@ export function useReadingProgress(bookId: string, chapterId: string) {
 
       saveTimerRef.current = setTimeout(async () => {
         const now = new Date().toISOString();
-        const { error } = await supabase.from("reading_progress").upsert(
+        const { error } = await supabaseRef.current.from("reading_progress").upsert(
           {
             user_id: user.id,
             book_id: bookId,
@@ -87,7 +85,7 @@ export function useReadingProgress(bookId: string, chapterId: string) {
         }
       }, 2000);
     },
-    [user, bookId, chapterId, supabase]
+    [user, bookId, chapterId]
   );
 
   // daily_statsを更新

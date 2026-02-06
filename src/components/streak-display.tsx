@@ -18,11 +18,7 @@ export default function StreakDisplay() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (authLoading) return;
-    if (!user) {
-      setLoading(false);
-      return;
-    }
+    if (authLoading || !user) return;
 
     const fetchStats = async () => {
       try {

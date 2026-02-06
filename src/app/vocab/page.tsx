@@ -24,11 +24,7 @@ export default function VocabPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (authLoading) return;
-    if (!user) {
-      setLoading(false);
-      return;
-    }
+    if (authLoading || !user) return;
 
     const supabase = createClient();
     const fetchVocab = async () => {
@@ -105,7 +101,7 @@ export default function VocabPage() {
     }
   };
 
-  if (authLoading || loading) {
+  if (authLoading || (user && loading)) {
     return (
       <div className="min-h-screen bg-muted">
         <header className="bg-card border-b border-border px-4 py-4">
