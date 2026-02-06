@@ -2,12 +2,15 @@
 
 英語量を調整しながら小説で多読。文タップで日英切替、AI辞書で快適に読み進められるWebアプリ。
 
+**本番URL**: https://novelang.vercel.app/
+
 ## 技術スタック
 
-- **フロントエンド**: Next.js (App Router) + TypeScript + Tailwind CSS
-- **DB/認証**: Supabase (PostgreSQL + Auth)
+- **フロントエンド**: Next.js 16 (App Router) + TypeScript + Tailwind CSS v4 + shadcn/ui
+- **DB/認証**: Supabase (PostgreSQL + Auth + Google Sign-In)
 - **翻訳**: DeepL API（作品投入時のバッチ翻訳）
 - **AI辞書**: Gemini API（辞書ルックアップ + 文脈説明）
+- **テスト**: Vitest + Testing Library
 - **ホスティング**: Vercel
 
 ## セットアップ
@@ -26,10 +29,14 @@ GEMINI_API_KEY=...
 DEEPL_API_KEY=...
 ```
 
-## 開発サーバー起動
+## 開発
 
 ```bash
-npm run dev
+npm run dev          # 開発サーバー起動 (http://localhost:3000)
+npm run build        # プロダクションビルド
+npm run lint         # ESLint実行
+npm test             # テスト実行（watchモード）
+npm run test:run     # テスト1回実行（CI用）
 ```
 
 http://localhost:3000 で開く。
@@ -74,7 +81,7 @@ npx tsx scripts/ingest-book.ts --translate
 
 #### iPhone (Safari)
 
-1. iPhoneのSafariで開発サーバーまたはデプロイ先URLにアクセス
+1. iPhoneのSafariで https://novelang.vercel.app/ にアクセス
 2. 共有ボタン（□↑）→「ホーム画面に追加」をタップ
 3. ホーム画面から起動し、スタンドアロン表示（アドレスバーなし）になることを確認
 4. ノッチ/Dynamic Island部分にヘッダーが被らないことを確認

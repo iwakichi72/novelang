@@ -2,14 +2,14 @@
  * 作品データ投入パイプライン
  *
  * 使い方:
- *   npx tsx scripts/ingest-book.ts                  # スタブ翻訳（AWS不要）
- *   npx tsx scripts/ingest-book.ts --translate       # Bedrock翻訳（AWS認証必要）
+ *   npx tsx scripts/ingest-book.ts                  # スタブ翻訳（API不要）
+ *   npx tsx scripts/ingest-book.ts --translate       # DeepL翻訳（DEEPL_API_KEY必要）
  *
  * 処理フロー:
  *   1. Project Gutenbergから英語原文テキストを取得
- *   2. テキストをクリーンアップ（ヘッダー/フッター除去）
- *   3. 章に分割 → 文に分割
- *   4. 日本語訳を生成（--translate: Bedrock Haiku / デフォルト: スタブ）
+ *   2. テキストをクリーンアップ（ヘッダー/フッター/装飾除去）
+ *   3. 各ストーリーを抽出 → 文に分割
+ *   4. 日本語訳を生成（--translate: DeepL / デフォルト: スタブ）
  *   5. Supabaseに books / chapters / sentences を格納
  */
 
@@ -17,34 +17,122 @@ import { config } from "dotenv";
 config({ path: ".env.local" });
 import { createClient } from "@supabase/supabase-js";
 
+// ---------- 型定義 ----------
+
+type StoryConfig = { title_en: string; title_ja: string };
+
+type BookConfig = {
+  url: string;
+  title_en: string;
+  title_ja: string;
+  author_en: string;
+  author_ja: string;
+  description_ja: string;
+  cefr_level: string;
+  stories: StoryConfig[];
+  skip_first_title_occurrence?: boolean;
+};
+
 // ---------- 設定 ----------
 
 const USE_LLM_TRANSLATION = process.argv.includes("--translate");
 
-const GUTENBERG_BOOKS = [
+const GUTENBERG_BOOKS: BookConfig[] = [
+  {
+    url: "https://www.gutenberg.org/ebooks/11.txt.utf-8",
+    title_en: "Alice's Adventures in Wonderland",
+    title_ja: "不思議の国のアリス",
+    author_en: "Lewis Carroll",
+    author_ja: "ルイス・キャロル",
+    description_ja:
+      "白ウサギを追って不思議の国に迷い込んだ少女アリスが、奇妙な住人たちと出会うナンセンスで幻想的な冒険譚。",
+    cefr_level: "A2",
+    skip_first_title_occurrence: true,
+    stories: [
+      { title_en: "CHAPTER I. Down the Rabbit-Hole", title_ja: "第1章 うさぎ穴へ" },
+      { title_en: "CHAPTER II. The Pool of Tears", title_ja: "第2章 涙の池" },
+      {
+        title_en: "CHAPTER III. A Caucus-Race and a Long Tale",
+        title_ja: "第3章 コーカス競走と長い話",
+      },
+      {
+        title_en: "CHAPTER IV. The Rabbit Sends in a Little Bill",
+        title_ja: "第4章 ウサギが小さなビルを送り込む",
+      },
+      {
+        title_en: "CHAPTER V. Advice from a Caterpillar",
+        title_ja: "第5章 イモムシの忠告",
+      },
+      { title_en: "CHAPTER VI. Pig and Pepper", title_ja: "第6章 子豚と胡椒" },
+      {
+        title_en: "CHAPTER VII. A Mad Tea-Party",
+        title_ja: "第7章 狂ったお茶会",
+      },
+      {
+        title_en: "CHAPTER VIII. The Queen’s Croquet-Ground",
+        title_ja: "第8章 女王のクロッケー場",
+      },
+      {
+        title_en: "CHAPTER IX. The Mock Turtle’s Story",
+        title_ja: "第9章 にせウミガメの話",
+      },
+      {
+        title_en: "CHAPTER X. The Lobster Quadrille",
+        title_ja: "第10章 ロブスターのカドリーユ",
+      },
+      {
+        title_en: "CHAPTER XI. Who Stole the Tarts?",
+        title_ja: "第11章 タルトを盗んだのは誰？",
+      },
+      {
+        title_en: "CHAPTER XII. Alice’s Evidence",
+        title_ja: "第12章 アリスの証言",
+      },
+    ],
+  },
+  {
+    url: "https://www.gutenberg.org/ebooks/7256.txt.utf-8",
+    title_en: "The Gift of the Magi",
+    title_ja: "賢者の贈り物",
+    author_en: "O. Henry",
+    author_ja: "オー・ヘンリー",
+    description_ja:
+      "貧しい若い夫婦が互いに秘密の贈り物を用意しようとする中で起こる、愛と犠牲のアイロニーを描いた短編。",
+    cefr_level: "B1",
+    stories: [{ title_en: "The Gift of the Magi", title_ja: "賢者の贈り物" }],
+  },
   {
     url: "https://www.gutenberg.org/cache/epub/902/pg902.txt",
-    title_en: "The Happy Prince",
-    title_ja: "幸福な王子",
+    title_en: "The Happy Prince and Other Tales",
+    title_ja: "幸福な王子と他のお話",
     author_en: "Oscar Wilde",
     author_ja: "オスカー・ワイルド",
     description_ja:
-      "街を見下ろす幸福な王子の像と、南へ渡るツバメの物語。王子は自らの宝石や金箔を貧しい人々に届けてほしいとツバメに頼む。自己犠牲と愛の美しい寓話。",
+      "オスカー・ワイルドの珠玉の童話集。自己犠牲と愛を描く「幸福な王子」、真の愛の代償を問う「ナイチンゲールとバラ」など、美しくも切ない5つの物語。",
     cefr_level: "B1",
-    story_title: "The Happy Prince",
-    next_story_title: "The Nightingale and the Rose",
+    skip_first_title_occurrence: true,
+    stories: [
+      { title_en: "The Happy Prince", title_ja: "幸福な王子" },
+      {
+        title_en: "The Nightingale and the Rose",
+        title_ja: "ナイチンゲールとバラ",
+      },
+      { title_en: "The Selfish Giant", title_ja: "わがままな大男" },
+      { title_en: "The Devoted Friend", title_ja: "忠実な友" },
+      { title_en: "The Remarkable Rocket", title_ja: "すばらしいロケット花火" },
+    ],
   },
 ];
 
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY;
-const BATCH_SIZE = 50; // DeepLは一括送信可能なのでバッチサイズを大きく
+const BATCH_SIZE = 50;
 
 // ---------- Supabase ----------
 
-// service_roleキーでRLSバイパス（スクリプト専用）
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
 // ---------- テキスト取得・クリーンアップ ----------
@@ -56,15 +144,30 @@ async function fetchGutenbergText(url: string): Promise<string> {
   return res.text();
 }
 
-export function extractStory(
+/** 正規表現の特殊文字をエスケープ */
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function buildTitleRegex(title: string, global = false): RegExp {
+  const escaped = escapeRegex(title).replace(/\s+/g, "\\s+");
+  return new RegExp(`${escaped}\\.?`, global ? "gmi" : "mi");
+}
+
+/**
+ * Gutenbergテキストから全ストーリーを抽出する。
+ * 各ストーリーはタイトル行（ピリオド付き）で区切られる。
+ */
+function extractAllStories(
   fullText: string,
-  storyTitle: string,
-  nextStoryTitle?: string
-): string {
+  stories: StoryConfig[],
+  options?: { skipFirstTitleOccurrence?: boolean }
+): { title_en: string; title_ja: string; text: string }[] {
   const startMarker = `*** START OF THE PROJECT GUTENBERG EBOOK`;
   const endMarker = `*** END OF THE PROJECT GUTENBERG EBOOK`;
   let text = fullText;
 
+  // Gutenbergヘッダー/フッター除去
   const startIdx = text.indexOf(startMarker);
   if (startIdx !== -1) {
     text = text.slice(text.indexOf("\n", startIdx) + 1);
@@ -74,25 +177,76 @@ export function extractStory(
     text = text.slice(0, endIdx);
   }
 
-  // タイトル行を探す（"The Happy Prince." のようにピリオド付きの場合も）
-  const titleRegex = new RegExp(`^\\s*${storyTitle}\\.?\\s*$`, "mi");
-  const titleMatch = text.match(titleRegex);
-  if (titleMatch && titleMatch.index !== undefined) {
-    // タイトル行の次の行から開始
-    const afterTitle = text.indexOf("\n", titleMatch.index);
-    text = text.slice(afterTitle + 1);
+  // [Picture: ...] / [Illustration] 装飾行を除去（先頭にスペースがある場合も対応）
+  text = text.replace(/\[(?:Picture|Illustration)[^\]]*\]/g, "");
 
-    // 次の話のタイトルで切る
-    if (nextStoryTitle) {
-      const nextRegex = new RegExp(`^\\s*${nextStoryTitle}\\.?\\s*$`, "mi");
-      const nextMatch = text.match(nextRegex);
-      if (nextMatch && nextMatch.index !== undefined) {
-        text = text.slice(0, nextMatch.index);
+  if (options?.skipFirstTitleOccurrence && stories.length > 0) {
+    const firstTitleRegex = buildTitleRegex(stories[0].title_en, true);
+    const firstMatch = firstTitleRegex.exec(text);
+    if (firstMatch) {
+      const secondMatch = firstTitleRegex.exec(text);
+      if (secondMatch && secondMatch.index !== undefined) {
+        text = text.slice(secondMatch.index);
       }
     }
   }
 
-  return text.trim();
+  const results: { title_en: string; title_ja: string; text: string }[] = [];
+
+  for (let i = 0; i < stories.length; i++) {
+    const story = stories[i];
+    const nextStory = stories[i + 1];
+
+    const titleRegex = buildTitleRegex(story.title_en);
+    const titleMatch = text.match(titleRegex);
+    if (!titleMatch || titleMatch.index === undefined) {
+      console.warn(
+        `  ⚠️ ストーリー「${story.title_en}」がテキスト内に見つかりません`
+      );
+      continue;
+    }
+
+    const startIndex = titleMatch.index + titleMatch[0].length;
+    let storyText = text.slice(startIndex).replace(/^\s+/, "");
+
+    // 次のストーリーのタイトルで切る
+    if (nextStory) {
+      const nextRegex = buildTitleRegex(nextStory.title_en);
+      const nextMatch = storyText.match(nextRegex);
+      if (nextMatch && nextMatch.index !== undefined) {
+        storyText = storyText.slice(0, nextMatch.index);
+      }
+    }
+
+    // 最後のストーリーのみ: 末尾の印刷所情報や区切り線を除去
+    if (!nextStory) {
+      storyText = storyText.replace(/\*\s*\*\s*\*\s*\*\s*\*[\s\S]*$/, "");
+    }
+
+    results.push({
+      title_en: story.title_en,
+      title_ja: story.title_ja,
+      text: storyText.trim(),
+    });
+  }
+
+  return results;
+}
+
+/**
+ * 後方互換: 単一ストーリー抽出（旧インターフェース）
+ */
+function extractStory(
+  fullText: string,
+  storyTitle: string,
+  nextStoryTitle?: string
+): string {
+  const stories: StoryConfig[] = [{ title_en: storyTitle, title_ja: "" }];
+  if (nextStoryTitle) {
+    stories.push({ title_en: nextStoryTitle, title_ja: "" });
+  }
+  const results = extractAllStories(fullText, stories);
+  return results.length > 0 ? results[0].text : "";
 }
 
 // ---------- 文分割 ----------
@@ -118,25 +272,17 @@ export function splitIntoSentences(text: string): string[] {
 
 // ---------- 翻訳 ----------
 
-/**
- * スタブ翻訳: AWS不要。プレースホルダーの日本語を返す。
- * 後で --translate フラグ付きで再実行すればLLM翻訳に差し替え可能。
- */
 function stubTranslate(sentences: string[]): string[] {
   return sentences.map((s) => `【未翻訳】${s}`);
 }
 
-/**
- * DeepL API で翻訳（--translate フラグ時のみ使用）
- * DEEPL_API_KEY が .env.local に必要。
- */
-async function translateBatchWithDeepL(sentences: string[]): Promise<string[]> {
+async function translateBatchWithDeepL(
+  sentences: string[]
+): Promise<string[]> {
   if (!DEEPL_API_KEY) {
     throw new Error("DEEPL_API_KEY が .env.local に設定されていません");
   }
 
-  // DeepL Free API: https://api-free.deepl.com
-  // DeepL Pro API: https://api.deepl.com
   const baseUrl = DEEPL_API_KEY.endsWith(":fx")
     ? "https://api-free.deepl.com"
     : "https://api.deepl.com";
@@ -165,11 +311,7 @@ async function translateBatchWithDeepL(sentences: string[]): Promise<string[]> {
 
 // ---------- DB格納 ----------
 
-async function insertBook(
-  bookConfig: (typeof GUTENBERG_BOOKS)[0],
-  sentenceCount: number,
-  wordCount: number
-) {
+async function insertBook(bookConfig: BookConfig, sentenceCount: number, wordCount: number) {
   const { data, error } = await supabase
     .from("books")
     .insert({
@@ -180,7 +322,7 @@ async function insertBook(
       description_ja: bookConfig.description_ja,
       cefr_level: bookConfig.cefr_level,
       genre_tags: ["fairy tale", "classic"],
-      total_chapters: 1,
+      total_chapters: bookConfig.stories.length,
       total_sentences: sentenceCount,
       total_words: wordCount,
       license_type: "PUBLIC_DOMAIN",
@@ -277,28 +419,23 @@ async function main() {
     `   翻訳モード: ${USE_LLM_TRANSLATION ? "🌐 DeepL API" : "📝 スタブ（【未翻訳】プレフィックス付き）"}\n`
   );
 
-  // 0. 既存データ削除（同じタイトルの作品があれば削除）
-  const { data: existingBooks } = await supabase
-    .from("books")
-    .select("id")
-    .eq("title_en", bookConfig.title_en);
-
-  if (existingBooks && existingBooks.length > 0) {
-    for (const eb of existingBooks) {
-      const bookId = (eb as { id: string }).id;
-      // sentences → chapters → reading_progress → book の順で削除
-      const { data: chapters } = await supabase
-        .from("chapters")
-        .select("id")
-        .eq("book_id", bookId);
-      if (chapters) {
-        const chapterIds = chapters.map((c) => (c as { id: string }).id);
-        await supabase.from("sentences").delete().in("chapter_id", chapterIds);
+  // 0. 既存データ削除（CASCADE DELETEで関連データも自動削除）
+  // 新タイトル + 旧タイトル（各ストーリー名）を両方検索して削除
+  const titlesToDelete = [
+    bookConfig.title_en,
+    ...bookConfig.stories.map((s) => s.title_en),
+  ];
+  for (const title of titlesToDelete) {
+    const { data: existingBooks } = await supabase
+      .from("books")
+      .select("id")
+      .eq("title_en", title);
+    if (existingBooks && existingBooks.length > 0) {
+      for (const eb of existingBooks) {
+        const bookId = (eb as { id: string }).id;
+        await supabase.from("books").delete().eq("id", bookId);
+        console.log(`🗑️ 既存データ削除: ${bookId} (${title})`);
       }
-      await supabase.from("chapters").delete().eq("book_id", bookId);
-      await supabase.from("reading_progress").delete().eq("book_id", bookId);
-      await supabase.from("books").delete().eq("id", bookId);
-      console.log(`🗑️ 既存データ削除: ${bookId}`);
     }
   }
 
@@ -306,79 +443,105 @@ async function main() {
   const fullText = await fetchGutenbergText(bookConfig.url);
   console.log(`   テキスト取得完了: ${fullText.length}文字`);
 
-  // 2. ストーリー抽出
-  const storyText = extractStory(fullText, bookConfig.story_title, bookConfig.next_story_title);
-  console.log(`   ストーリー抽出完了: ${storyText.length}文字`);
+  // 2. 全ストーリー抽出
+  const stories = extractAllStories(fullText, bookConfig.stories, {
+    skipFirstTitleOccurrence: bookConfig.skip_first_title_occurrence,
+  });
+  console.log(`   ストーリー抽出完了: ${stories.length}話\n`);
 
-  // 3. 文分割
-  const englishSentences = splitIntoSentences(storyText);
-  const totalWords = englishSentences.reduce(
-    (sum, s) => sum + s.split(/\s+/).length,
+  // 3. 各ストーリーの文分割
+  const chaptersData = stories.map((story, idx) => {
+    const sentences = splitIntoSentences(story.text);
+    const wordCount = sentences.reduce(
+      (sum, s) => sum + s.split(/\s+/).length,
+      0
+    );
+    console.log(
+      `   第${idx + 1}話「${story.title_en}」: ${sentences.length}文, ${wordCount}語`
+    );
+    return { ...story, sentences, wordCount, chapterNumber: idx + 1 };
+  });
+
+  const totalSentences = chaptersData.reduce(
+    (sum, ch) => sum + ch.sentences.length,
     0
   );
-  console.log(`   文分割完了: ${englishSentences.length}文, ${totalWords}語\n`);
+  const totalWords = chaptersData.reduce(
+    (sum, ch) => sum + ch.wordCount,
+    0
+  );
+  console.log(`\n   合計: ${totalSentences}文, ${totalWords}語\n`);
 
-  // 4. 翻訳
-  const japaneseSentences: string[] = [];
+  // 4. 翻訳（全ストーリーの文を連結して一括翻訳）
+  const allEnglishSentences = chaptersData.flatMap((ch) => ch.sentences);
+  let allJapaneseSentences: string[];
 
   if (USE_LLM_TRANSLATION) {
     console.log(
-      `🔄 DeepL翻訳開始（${Math.ceil(englishSentences.length / BATCH_SIZE)}バッチ）`
+      `🔄 DeepL翻訳開始（${Math.ceil(allEnglishSentences.length / BATCH_SIZE)}バッチ）`
     );
-    for (let i = 0; i < englishSentences.length; i += BATCH_SIZE) {
-      const batch = englishSentences.slice(i, i + BATCH_SIZE);
+    allJapaneseSentences = [];
+    for (let i = 0; i < allEnglishSentences.length; i += BATCH_SIZE) {
+      const batch = allEnglishSentences.slice(i, i + BATCH_SIZE);
       const batchNum = Math.floor(i / BATCH_SIZE) + 1;
-      const totalBatches = Math.ceil(englishSentences.length / BATCH_SIZE);
+      const totalBatches = Math.ceil(allEnglishSentences.length / BATCH_SIZE);
       process.stdout.write(`   バッチ ${batchNum}/${totalBatches}...`);
-
       const translations = await translateBatchWithDeepL(batch);
-      japaneseSentences.push(...translations);
+      allJapaneseSentences.push(...translations);
       console.log(` ✅ (${translations.length}文)`);
-
-      if (i + BATCH_SIZE < englishSentences.length) {
+      if (i + BATCH_SIZE < allEnglishSentences.length) {
         await new Promise((r) => setTimeout(r, 500));
       }
     }
   } else {
     console.log(`📝 スタブ翻訳を使用`);
-    japaneseSentences.push(...stubTranslate(englishSentences));
+    allJapaneseSentences = stubTranslate(allEnglishSentences);
   }
 
-  console.log(`\n✅ 翻訳完了: ${japaneseSentences.length}文\n`);
+  console.log(`\n✅ 翻訳完了: ${allJapaneseSentences.length}文\n`);
 
   // 5. DB格納
   console.log(`💾 DB格納開始`);
 
-  const bookId = await insertBook(
-    bookConfig,
-    englishSentences.length,
-    totalWords
-  );
+  const bookId = await insertBook(bookConfig, totalSentences, totalWords);
   console.log(`   Book作成: ${bookId}`);
 
-  const chapterId = await insertChapter(
-    bookId,
-    1,
-    bookConfig.title_en,
-    bookConfig.title_ja,
-    englishSentences.length,
-    totalWords
-  );
-  console.log(`   Chapter作成: ${chapterId}`);
+  // 翻訳結果を各チャプターに振り分けながら格納
+  let translationOffset = 0;
+  for (const chData of chaptersData) {
+    const chapterJa = allJapaneseSentences.slice(
+      translationOffset,
+      translationOffset + chData.sentences.length
+    );
+    translationOffset += chData.sentences.length;
 
-  const sentenceData = englishSentences.map((text_en, i) => ({
-    text_en,
-    text_ja: japaneseSentences[i],
-    position: i + 1,
-    word_count: text_en.split(/\s+/).length,
-  }));
+    const chapterId = await insertChapter(
+      bookId,
+      chData.chapterNumber,
+      chData.title_en,
+      chData.title_ja,
+      chData.sentences.length,
+      chData.wordCount
+    );
+    console.log(
+      `   Chapter ${chData.chapterNumber}作成: ${chapterId} (${chData.title_en})`
+    );
 
-  await insertSentences(chapterId, sentenceData);
-  console.log(`   Sentences作成: ${sentenceData.length}件`);
+    const sentenceData = chData.sentences.map((text_en, i) => ({
+      text_en,
+      text_ja: chapterJa[i],
+      position: i + 1,
+      word_count: text_en.split(/\s+/).length,
+    }));
+
+    await insertSentences(chapterId, sentenceData);
+    console.log(`     Sentences: ${sentenceData.length}件`);
+  }
 
   console.log(`\n🎉 完了！ ${bookConfig.title_en} を投入しました`);
   console.log(`   Book ID: ${bookId}`);
-  console.log(`   文数: ${englishSentences.length}`);
+  console.log(`   章数: ${chaptersData.length}`);
+  console.log(`   文数: ${totalSentences}`);
   console.log(`   語数: ${totalWords}`);
   console.log(
     `\n💡 ${USE_LLM_TRANSLATION ? "" : "翻訳を更新するには: npx tsx scripts/ingest-book.ts --translate"}`
@@ -389,3 +552,13 @@ main().catch((err) => {
   console.error("❌ エラー:", err);
   process.exit(1);
 });
+
+// テスト用エクスポート
+export {
+  splitIntoSentences,
+  estimateDifficulty,
+  estimateCefr,
+  extractAllStories,
+  extractStory,
+  escapeRegex,
+};

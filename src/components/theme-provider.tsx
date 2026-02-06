@@ -21,23 +21,15 @@ export function useTheme() {
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>("system");
-  const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">("light");
-  const [mounted, setMounted] = useState(false);
-
-  // 初期化: localStorageから読み込み
-  useEffect(() => {
+  const [theme, setThemeState] = useState<Theme>(() => {
+    if (typeof window === "undefined") return "system";
     const stored = localStorage.getItem("theme") as Theme | null;
-    if (stored && ["light", "dark", "system"].includes(stored)) {
-      setThemeState(stored);
-    }
-    setMounted(true);
-  }, []);
+    return stored && ["light", "dark", "system"].includes(stored) ? stored : "system";
+  });
+  const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">("light");
 
   // テーマ変更時の処理
   useEffect(() => {
-    if (!mounted) return;
-
     const root = document.documentElement;
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
 
@@ -57,7 +49,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       mediaQuery.addEventListener("change", updateTheme);
       return () => mediaQuery.removeEventListener("change", updateTheme);
     }
-  }, [theme, mounted]);
+  }, [theme]);
 
   const setTheme = (newTheme: Theme) => {
     setThemeState(newTheme);

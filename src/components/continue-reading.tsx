@@ -27,11 +27,7 @@ export default function ContinueReading() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (authLoading) return;
-    if (!user) {
-      setLoading(false);
-      return;
-    }
+    if (authLoading || !user) return;
 
     const supabase = createClient();
     const fetchProgress = async () => {
@@ -86,7 +82,7 @@ export default function ContinueReading() {
     fetchProgress();
   }, [user, authLoading]);
 
-  if (authLoading || loading || !progress) return null;
+  if (authLoading || !user || (user && loading) || !progress) return null;
 
   const chapterProgress = progress.chapter_sentence_count > 0
     ? Math.round((progress.current_sentence_position / progress.chapter_sentence_count) * 100)
@@ -94,11 +90,11 @@ export default function ContinueReading() {
 
   return (
     <div className="mb-6">
-      <h2 className="text-lg font-semibold mb-3 text-foreground">続きから読む</h2>
+      <h2 className="text-lg font-semibold mb-4 text-foreground">続きから読む</h2>
       <Link href={`/read/${progress.book_id}/${progress.current_chapter_id}`}>
-        <Card className="hover:shadow-md transition-all duration-200 border-primary/30 bg-primary/5">
+        <Card className="hover:shadow-md transition-all duration-200 border-primary/40 bg-primary/5">
           <CardContent className="flex items-center gap-3 p-4">
-            <div className="size-12 bg-primary/10 rounded-lg flex-shrink-0 flex items-center justify-center">
+            <div className="size-12 bg-primary/15 rounded-lg flex-shrink-0 flex items-center justify-center">
               <BookOpen className="size-5 text-primary" />
             </div>
             <div className="flex-1 min-w-0">

@@ -31,11 +31,7 @@ export default function StatsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (authLoading) return;
-    if (!user) {
-      setLoading(false);
-      return;
-    }
+    if (authLoading || !user) return;
 
     const supabase = createClient();
 
@@ -108,7 +104,7 @@ export default function StatsPage() {
     fetchStats();
   }, [user, authLoading]);
 
-  if (authLoading || loading) {
+  if (authLoading || (user && loading)) {
     return (
       <div className="min-h-screen bg-muted">
         <header className="bg-card border-b border-border px-4 py-4">

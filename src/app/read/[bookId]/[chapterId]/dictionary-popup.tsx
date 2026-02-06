@@ -86,7 +86,7 @@ export default function DictionaryPopup({
       >
         <div className="flex justify-between items-start mb-2">
           <div className="flex items-center gap-2">
-            <h3 className="text-lg font-bold text-foreground">{word}</h3>
+            <h3 className="text-lg font-bold text-foreground font-serif">{word}</h3>
             {isSupported && (
               <Button
                 variant="ghost"
@@ -129,7 +129,7 @@ export default function DictionaryPopup({
 
         {/* AI辞書セクション */}
         {aiResponse ? (
-          <div className="mt-3 pt-3 border-t border-border">
+          <div className="mt-4 pt-4 border-t border-border">
             <p className="text-xs text-primary font-medium mb-1 flex items-center gap-1">
               <Sparkles className="size-3" />
               AI辞書
@@ -139,13 +139,13 @@ export default function DictionaryPopup({
             </div>
           </div>
         ) : aiLoading ? (
-          <div className="mt-3 pt-3 border-t border-border space-y-2">
+          <div className="mt-4 pt-4 border-t border-border space-y-2">
             <Skeleton className="h-4 w-20" />
             <Skeleton className="h-4 w-full" />
             <Skeleton className="h-4 w-3/4" />
           </div>
         ) : aiError ? (
-          <div className="mt-3 pt-3 border-t border-border">
+          <div className="mt-4 pt-4 border-t border-border">
             <p className="text-sm text-destructive">AI辞書の取得に失敗しました</p>
             <Button
               variant="ghost"
@@ -159,7 +159,7 @@ export default function DictionaryPopup({
           </div>
         ) : null}
 
-        <div className="flex gap-2 mt-4">
+        <div className="flex gap-3 mt-4">
           {!aiResponse && !aiLoading && (
             <Button
               variant="outline"

@@ -1,6 +1,6 @@
 # Novelang 進捗管理シート
 
-> 最終更新: 2026-02-01
+> 最終更新: 2026-02-06
 
 ## MVP バックログ
 
@@ -23,14 +23,14 @@
 - [x] #14 読書進捗API（保存/取得）— スクロール追跡＋デバウンス保存
 - [x] #15 自動しおり（最終位置保存）— 位置復元付き
 - [x] #16 ホーム画面（続きから読む）— ContinueReadingコンポーネント
-- [ ] #17 Vercelデプロイ＋本番環境構築
+- [x] #17 Vercelデプロイ＋本番環境構築 — https://novelang.vercel.app/
 
 ## β バックログ
 
 - [x] #18 AI辞書API（Bedrock Claude Haiku連携）— /api/dictionary/ai、文脈付き解説
 - [x] #19 AI辞書キャッシュ（Supabase）— ai_dictionary_cacheテーブル活用、word+sentence_idで重複排除
 - [x] #20 単語帳CRUD API＋画面 — 保存・一覧・削除、出現文コンテキスト付き
-- [ ] #21 TTS（Web Speech API連携）
+- [x] #21 TTS（Web Speech API連携）— フッタートグルON/OFF、文タップで読み上げ＋ハイライト
 - [ ] #22 連続日数（ストリーク）計算＋表示
 - [ ] #23 読書統計画面
 - [ ] #24 オンボーディングフロー（レベル選択→おすすめ）
@@ -41,7 +41,7 @@
 ## 技術メモ
 
 - **DB**: Supabase PostgreSQL（プロジェクトID: oqckkhxnxebhiukmvtrz）
-- **ホスティング**: Vercel（未デプロイ）
+- **ホスティング**: Vercel（https://novelang.vercel.app/）
 - **認証**: Supabase Auth + Google Sign-In（@supabase/ssr使用、RLS設定済み）
 - **UUID生成**: `gen_random_uuid()`（Supabase標準）
 - **シードデータ**: 3冊・2章・10文・20語投入済み
