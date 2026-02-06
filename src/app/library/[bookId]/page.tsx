@@ -6,19 +6,32 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CEFR_VARIANTS } from "@/lib/cefr-utils";
 
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 export default async function BookDetailPage({
   params,
 }: {
   params: Promise<{ bookId: string }>;
 }) {
   const { bookId } = await params;
-  const book = await getBook(bookId);
-  const chapters = book ? await getChapters(bookId) : [];
+  if (!UUID_PATTERN.test(bookId)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <p className="text-foreground">Book not found</p>
+      </div>
+    );
+  }
+
+  const [book, chapters] = await Promise.all([
+    getBook(bookId),
+    getChapters(bookId),
+  ]);
 
   if (!book) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <p className="text-foreground">作品が見つかりません</p>
+        <p className="text-foreground">Book not found</p>
       </div>
     );
   }
