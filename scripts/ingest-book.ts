@@ -555,9 +555,6 @@ main().catch((err) => {
 
 // テスト用エクスポート
 export {
-  splitIntoSentences,
-  estimateDifficulty,
-  estimateCefr,
   extractAllStories,
   extractStory,
   escapeRegex,
