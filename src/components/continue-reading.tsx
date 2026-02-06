@@ -21,6 +21,23 @@ type ProgressWithBook = {
   chapter_sentence_count: number;
 };
 
+type ProgressQueryRow = {
+  book_id: string;
+  current_chapter_id: string;
+  current_sentence_position: number;
+  sentences_read: number;
+  last_read_at: string;
+  book: {
+    title_en: string;
+    title_ja: string;
+    cefr_level: string;
+  } | null;
+  chapter: {
+    chapter_number: number;
+    sentence_count: number;
+  } | null;
+};
+
 export default function ContinueReading() {
   const { user, loading: authLoading } = useAuth();
   const [progress, setProgress] = useState<ProgressWithBook | null>(null);
@@ -31,49 +48,48 @@ export default function ContinueReading() {
 
     const supabase = createClient();
     const fetchProgress = async () => {
-      // 最新の読書進捗を1件取得
       const { data } = await supabase
         .from("reading_progress")
-        .select("*")
+        .select(`
+          book_id,
+          current_chapter_id,
+          current_sentence_position,
+          sentences_read,
+          last_read_at,
+          book:books!reading_progress_book_id_fkey (
+            title_en,
+            title_ja,
+            cefr_level
+          ),
+          chapter:chapters!reading_progress_current_chapter_id_fkey (
+            chapter_number,
+            sentence_count
+          )
+        `)
         .eq("user_id", user.id)
         .eq("is_completed", false)
         .order("last_read_at", { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (!data) {
         setLoading(false);
         return;
       }
 
-      const rp = data as { book_id: string; current_chapter_id: string; current_sentence_position: number; sentences_read: number; last_read_at: string };
-
-      // 書籍情報を取得
-      const { data: book } = await supabase
-        .from("books")
-        .select("title_en, title_ja, cefr_level")
-        .eq("id", rp.book_id)
-        .single();
-
-      // 章情報を取得
-      const { data: chapter } = await supabase
-        .from("chapters")
-        .select("chapter_number, sentence_count")
-        .eq("id", rp.current_chapter_id)
-        .single();
-
-      if (book && chapter) {
+      const rp = data as ProgressQueryRow;
+      if (rp.book && rp.chapter) {
         setProgress({
           book_id: rp.book_id,
           current_chapter_id: rp.current_chapter_id,
           current_sentence_position: rp.current_sentence_position,
           sentences_read: rp.sentences_read,
           last_read_at: rp.last_read_at,
-          book_title_en: (book as { title_en: string }).title_en,
-          book_title_ja: (book as { title_ja: string }).title_ja,
-          book_cefr_level: (book as { cefr_level: string }).cefr_level,
-          chapter_number: (chapter as { chapter_number: number }).chapter_number,
-          chapter_sentence_count: (chapter as { sentence_count: number }).sentence_count,
+          book_title_en: rp.book.title_en,
+          book_title_ja: rp.book.title_ja,
+          book_cefr_level: rp.book.cefr_level,
+          chapter_number: rp.chapter.chapter_number,
+          chapter_sentence_count: rp.chapter.sentence_count,
         });
       }
       setLoading(false);
@@ -84,9 +100,13 @@ export default function ContinueReading() {
 
   if (authLoading || !user || (user && loading) || !progress) return null;
 
-  const chapterProgress = progress.chapter_sentence_count > 0
-    ? Math.round((progress.current_sentence_position / progress.chapter_sentence_count) * 100)
-    : 0;
+  const chapterProgress =
+    progress.chapter_sentence_count > 0
+      ? Math.round(
+          (progress.current_sentence_position / progress.chapter_sentence_count) *
+            100
+        )
+      : 0;
 
   return (
     <div className="mb-6">
