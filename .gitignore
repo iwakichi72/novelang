@@ -46,5 +46,9 @@ supabase/.temp/
 # claude code
 .claude/
 
+# service worker (build output)
+public/sw.js
+public/swe-worker-*.js
+
 # windows artifact
 nul

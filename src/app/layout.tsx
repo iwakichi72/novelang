@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Noto_Serif_JP } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/components/auth-provider";
 import { ThemeProvider } from "@/components/theme-provider";
+import { OnlineStatus } from "@/components/online-status";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -54,6 +55,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} ${notoSerifJP.variable} antialiased bg-background text-foreground`}
       >
         <ThemeProvider>
+          <OnlineStatus />
           <AuthProvider>{children}</AuthProvider>
         </ThemeProvider>
       </body>
