@@ -9,6 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CEFR_VARIANTS } from "@/lib/cefr-utils";
 
+// DBから毎回最新データを取得（静的生成しない）
+export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
   const books = await getBooks();
 

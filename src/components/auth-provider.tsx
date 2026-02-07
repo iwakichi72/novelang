@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 
@@ -25,9 +25,10 @@ export function useAuth() {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
+  const supabaseRef = useRef(createClient());
 
   useEffect(() => {
+    const supabase = supabaseRef.current;
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user);
       setLoading(false);
@@ -43,7 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signInWithGoogle = async () => {
-    await supabase.auth.signInWithOAuth({
+    await supabaseRef.current.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
@@ -52,7 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    await supabaseRef.current.auth.signOut();
     setUser(null);
   };
 

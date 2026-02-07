@@ -4,12 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint"
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.980.0",
+    "@serwist/next": "^9.5.4",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.93.3",
     "class-variance-authority": "^0.7.1",
@@ -30,6 +31,7 @@
     "dotenv": "^17.2.3",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
+    "serwist": "^9.5.4",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
     "typescript": "^5"

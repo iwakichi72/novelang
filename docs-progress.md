@@ -1,6 +1,6 @@
 # Novelang 進捗管理シート
 
-> 最終更新: 2026-02-05
+> 最終更新: 2026-02-07
 
 ## MVP バックログ
 
@@ -30,11 +30,11 @@
 - [x] #18 AI辞書API（Bedrock Claude Haiku連携）— /api/dictionary/ai、文脈付き解説
 - [x] #19 AI辞書キャッシュ（Supabase）— ai_dictionary_cacheテーブル活用、word+sentence_idで重複排除
 - [x] #20 単語帳CRUD API＋画面 — 保存・一覧・削除、出現文コンテキスト付き
-- [ ] #21 TTS（Web Speech API連携）
-- [ ] #22 連続日数（ストリーク）計算＋表示
-- [ ] #23 読書統計画面
+- [x] #21 TTS（Web Speech API連携）— フッタートグルON/OFF、文タップで読み上げ＋ハイライト
+- [x] #22 連続日数（ストリーク）計算＋表示 — daily_statsテーブル＋/api/stats/daily、StreakDisplayコンポーネント
+- [x] #23 読書統計画面 — /stats、過去30日統計＋週間グラフ＋ストリーク表示
 - [ ] #24 オンボーディングフロー（レベル選択→おすすめ）
-- [ ] #25 Service Workerによるオフラインキャッシュ
+- [x] #25 Service Workerによるオフラインキャッシュ — Serwist統合、読書ページNetworkFirst＋オフラインフォールバック＋状態バナー
 - [ ] #26 Apple Sign-In
 - [ ] #27 手動しおり（複数）
 
