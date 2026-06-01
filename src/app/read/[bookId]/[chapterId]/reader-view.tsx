@@ -5,6 +5,11 @@ import Link from "next/link";
 import type { Book, Chapter, Sentence } from "@/types/database";
 import DictionaryPopup from "./dictionary-popup";
 import { useReadingProgress } from "@/hooks/use-reading-progress";
+import {
+  advanceReaderOnboarding,
+  READER_ONBOARDING_STORAGE_KEY,
+  type ReaderOnboardingStep,
+} from "./reader-onboarding";
 
 type EnglishRatio = 25 | 50 | 75 | 100;
 
@@ -35,11 +40,51 @@ export default function ReaderView({
     sentenceText: string;
     rect: { x: number; y: number };
   } | null>(null);
+  const [onboardingStep, setOnboardingStep] =
+    useState<ReaderOnboardingStep | null>(null);
 
   // 読書進捗フック
   const { savedPosition, saveProgress } = useReadingProgress(book.id, chapter.id);
   const sentenceRefs = useRef<Map<string, HTMLElement>>(new Map());
   const hasRestoredPosition = useRef(false);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const suppressNextSentenceTapRef = useRef(false);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const hasCompletedOnboarding =
+        window.localStorage.getItem(READER_ONBOARDING_STORAGE_KEY) === "done";
+      setOnboardingStep(hasCompletedOnboarding ? null : "sentence");
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  const skipOnboarding = useCallback(() => {
+    window.localStorage.setItem(READER_ONBOARDING_STORAGE_KEY, "done");
+    setOnboardingStep(null);
+  }, []);
+
+  const resetOnboarding = useCallback(() => {
+    window.localStorage.removeItem(READER_ONBOARDING_STORAGE_KEY);
+    setShowHeader(true);
+    setOnboardingStep("sentence");
+  }, []);
+
+  const advanceOnboarding = useCallback(
+    (action: Parameters<typeof advanceReaderOnboarding>[1]) => {
+      setOnboardingStep((currentStep) => {
+        if (!currentStep) return currentStep;
+        const nextStep = advanceReaderOnboarding(currentStep, action);
+        if (nextStep === "done") {
+          window.localStorage.setItem(READER_ONBOARDING_STORAGE_KEY, "done");
+          return null;
+        }
+        return nextStep;
+      });
+    },
+    []
+  );
 
   // 保存済み位置にスクロール復元
   useEffect(() => {
@@ -105,6 +150,11 @@ export default function ReaderView({
 
   // 文タップで日英切替
   const handleSentenceTap = (sentenceId: string) => {
+    if (suppressNextSentenceTapRef.current) {
+      suppressNextSentenceTapRef.current = false;
+      return;
+    }
+
     setFlippedSentences((prev) => {
       const next = new Set(prev);
       if (next.has(sentenceId)) {
@@ -114,31 +164,63 @@ export default function ReaderView({
       }
       return next;
     });
+    advanceOnboarding("sentence-toggled");
   };
 
   // 英語量変更時にフリップ状態をリセット
   const handleRatioChange = (ratio: EnglishRatio) => {
     setEnglishRatio(ratio);
     setFlippedSentences(new Set());
+    advanceOnboarding("ratio-changed");
   };
 
-  // 単語の長押し（実装はクリックで代用、モバイルでは長押し）
-  const handleWordClick = (
-    e: React.MouseEvent,
+  const clearLongPressTimer = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+
+  const openDictionaryAt = (
     word: string,
     sentenceId: string,
-    sentenceText: string
+    sentenceText: string,
+    rect: { x: number; y: number }
   ) => {
-    e.stopPropagation();
     const cleaned = word.replace(/[^a-zA-Z'-]/g, "").toLowerCase();
     if (cleaned.length < 2) return;
     setSelectedWord({
       word: cleaned,
       sentenceId,
       sentenceText,
-      rect: { x: e.clientX, y: e.clientY },
+      rect,
     });
+    advanceOnboarding("word-opened");
   };
+
+  // 通常タップは文切替、長押しだけ単語辞書に使う。
+  const handleWordPointerDown = (
+    e: React.PointerEvent,
+    word: string,
+    sentenceId: string,
+    sentenceText: string
+  ) => {
+    clearLongPressTimer();
+    const rect = { x: e.clientX, y: e.clientY };
+    longPressTimerRef.current = setTimeout(() => {
+      longPressTimerRef.current = null;
+      suppressNextSentenceTapRef.current = true;
+      openDictionaryAt(word, sentenceId, sentenceText, rect);
+    }, 450);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (longPressTimerRef.current) {
+        clearTimeout(longPressTimerRef.current);
+      }
+    };
+  }, []);
 
   // 進捗計算（現在のスクロール位置ベース）
   const [currentPosition, setCurrentPosition] = useState(0);
@@ -175,12 +257,22 @@ export default function ReaderView({
             <span className="text-sm font-medium text-gray-700">
               第{chapter.chapter_number}章
             </span>
-            <button
-              onClick={() => setShowHeader(false)}
-              className="text-gray-400 hover:text-gray-600 text-sm"
-            >
-              隠す
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={resetOnboarding}
+                className="flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 text-sm text-gray-500 transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                aria-label="読書ガイドを表示"
+                title="読書ガイドを表示"
+              >
+                ?
+              </button>
+              <button
+                onClick={() => setShowHeader(false)}
+                className="text-gray-400 hover:text-gray-600 text-sm"
+              >
+                隠す
+              </button>
+            </div>
           </div>
         </header>
       )}
@@ -226,10 +318,20 @@ export default function ReaderView({
                       return (
                         <span
                           key={i}
-                          onClick={(e) =>
-                            handleWordClick(e, part, sentence.id, sentence.text_en)
+                          onPointerDown={(e) =>
+                            handleWordPointerDown(
+                              e,
+                              part,
+                              sentence.id,
+                              sentence.text_en
+                            )
                           }
-                          className="hover:bg-yellow-100 rounded cursor-pointer"
+                          onPointerUp={clearLongPressTimer}
+                          onPointerLeave={clearLongPressTimer}
+                          onPointerCancel={clearLongPressTimer}
+                          onContextMenu={(e) => e.preventDefault()}
+                          className="rounded cursor-pointer touch-manipulation hover:bg-yellow-100"
+                          title="長押しで辞書"
                         >
                           {part}
                         </span>
@@ -241,6 +343,13 @@ export default function ReaderView({
           })}
         </div>
       </main>
+
+      {onboardingStep && (
+        <ReaderOnboardingBubble
+          step={onboardingStep}
+          onSkip={skipOnboarding}
+        />
+      )}
 
       {/* 辞書ポップアップ */}
       {selectedWord && (
@@ -289,6 +398,61 @@ export default function ReaderView({
           </div>
         </div>
       </footer>
+    </div>
+  );
+}
+
+function ReaderOnboardingBubble({
+  step,
+  onSkip,
+}: {
+  step: Exclude<ReaderOnboardingStep, "done">;
+  onSkip: () => void;
+}) {
+  const content = {
+    sentence: {
+      label: "1 / 3",
+      title: "まずは1文タップ",
+      body: "英文をタップすると、その文だけ日本語に切り替わります。",
+      className: "top-20 left-5 right-5 sm:left-1/2 sm:right-auto sm:w-80 sm:-translate-x-80",
+    },
+    word: {
+      label: "2 / 3",
+      title: "単語は長押しで辞書",
+      body: "気になる単語を長押しすると、読書を止めずに意味を確認できます。",
+      className: "top-32 left-5 right-5 sm:left-1/2 sm:right-auto sm:w-80 sm:-translate-x-80",
+    },
+    ratio: {
+      label: "3 / 3",
+      title: "英語量を合わせる",
+      body: "下のボタンで英語の割合を変えられます。迷ったら50%からで大丈夫です。",
+      className: "bottom-24 left-5 right-5 sm:left-1/2 sm:right-auto sm:w-80 sm:-translate-x-40",
+    },
+  }[step];
+
+  return (
+    <div
+      className={`fixed z-30 rounded-xl border border-blue-100 bg-white p-4 shadow-xl shadow-blue-950/10 ${content.className}`}
+      role="status"
+      aria-live="polite"
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-semibold text-blue-600">{content.label}</p>
+          <p className="mt-1 text-sm font-semibold text-gray-900">
+            {content.title}
+          </p>
+          <p className="mt-1 text-sm leading-relaxed text-gray-600">
+            {content.body}
+          </p>
+        </div>
+        <button
+          onClick={onSkip}
+          className="rounded-md px-2 py-1 text-xs text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+        >
+          スキップ
+        </button>
+      </div>
     </div>
   );
 }
